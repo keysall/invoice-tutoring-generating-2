@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Invoice Generator — Xu Yiyang</title>
-<meta name="description" content="Generator invoice tutoring otomatis. Isi form, lihat pratinjau langsung, unduh sebagai PDF.">
+<title>Invoice Generator — Your Name please <3</title>
+<meta name="description" content="simple invoice generator for tutoring sessions, built by Keysall ˖ ݁♬⋆.˚𝄞">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Inter:wght@400;500;600&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
@@ -15,7 +15,7 @@
 <header class="topbar">
   <div class="topbar-inner">
     <span class="brand">Invoice<span class="brand-accent">.</span>Gen</span>
-    <span class="topbar-sub">dibuat untuk sesi tutoring</span>
+    <span class="topbar-sub">created for a tutoring session</span>
   </div>
 </header>
 
@@ -25,30 +25,30 @@
   <section class="panel form-panel" aria-label="Form input invoice">
 
     <div class="field-group">
-      <h2 class="group-title">01 — Dari</h2>
+      <h2 class="group-title">01 — From</h2>
       <label class="field">
-        <span>Nama kamu</span>
+        <span>Your name</span>
         <input type="text" id="fromName" placeholder="Xu Yiyang" value="Xu Yiyang">
       </label>
       <label class="field">
-        <span>Kontak (email / WhatsApp)</span>
+        <span>Contact (email / WhatsApp)</span>
         <input type="text" id="fromContact" placeholder="email@students.unnes.ac.id / WA 08xx">
       </label>
     </div>
 
     <div class="field-group">
-      <h2 class="group-title">02 — Untuk</h2>
+      <h2 class="group-title">02 — To</h2>
       <label class="field">
-        <span>Nama klien</span>
-        <input type="text" id="clientName" placeholder="Nama siswa / klien">
+        <span>Client name</span>
+        <input type="text" id="clientName" placeholder="Student Name / klien">
       </label>
       <div class="field-row">
         <label class="field">
-          <span>Nomor invoice</span>
+          <span>Invoice number</span>
           <input type="text" id="invoiceNumber" placeholder="TTR-001/08/2026">
         </label>
         <label class="field">
-          <span>Tanggal</span>
+          <span>Date</span>
           <input type="date" id="invoiceDate">
         </label>
       </div>
@@ -56,51 +56,51 @@
 
     <div class="field-group">
       <div class="group-header-row">
-        <h2 class="group-title">03 — Rincian sesi</h2>
+        <h2 class="group-title">03 — Session Details</h2>
         <button type="button" class="btn-ghost btn-sm" id="addItemBtn">
-          <i class="ti ti-plus" aria-hidden="true"></i> Tambah baris
+          <i class="ti ti-plus" aria-hidden="true"></i> Add row
         </button>
       </div>
       <div id="itemsList" class="items-list"></div>
     </div>
 
     <div class="field-group">
-      <h2 class="group-title">04 — Metode pembayaran</h2>
+      <h2 class="group-title">04 — Payment Method</h2>
       <label class="field">
         <span>Bank</span>
         <input type="text" id="bankName" placeholder="BCA">
       </label>
       <label class="field">
-        <span>Nomor rekening</span>
+        <span>Account number</span>
         <input type="text" id="bankAccount" placeholder="1234567890">
       </label>
       <label class="field">
-        <span>Atas nama</span>
-        <input type="text" id="bankHolder" placeholder="Xu Yiyang">
+        <span>Account holder</span>
+        <input type="text" id="bankHolder" placeholder="Your name <3">
       </label>
       <label class="field">
-        <span>QRIS (opsional)</span>
+        <span>QRIS (optional)</span>
         <input type="file" id="qrisUpload" accept="image/*">
       </label>
       <button type="button" class="btn-ghost btn-sm" id="removeQrisBtn" hidden>
-        <i class="ti ti-x" aria-hidden="true"></i> Hapus QRIS
+        <i class="ti ti-x" aria-hidden="true"></i> Remove QRIS
       </button>
     </div>
 
     <div class="field-group">
-      <h2 class="group-title">05 — Catatan penutup</h2>
+      <h2 class="group-title">05 — Closing Note</h2>
       <label class="field">
-        <span>Pesan singkat</span>
-        <textarea id="closingNote" rows="2">Terima kasih! Jika ada pertanyaan, silakan hubungi kontak di atas.</textarea>
+        <span>Short message</span>
+        <textarea id="closingNote" rows="2">Thank you! If there are any issues, please contact me through.</textarea>
       </label>
     </div>
 
     <button type="button" class="btn-primary" id="downloadBtn">
-      <i class="ti ti-download" aria-hidden="true"></i> Unduh sebagai PDF
+      <i class="ti ti-download" aria-hidden="true"></i> Download as PDF
     </button>
-    <p class="hint-text">Semua data diproses &amp; disimpan otomatis di browser kamu sendiri — tidak dikirim ke server mana pun.</p>
+    <p class="hint-text">All data is processed &amp; auto-saved in your own browser — nothing is sent to any server.</p>
     <button type="button" class="btn-ghost btn-sm" id="clearCacheBtn" style="margin:8px auto 0; display:flex;">
-      <i class="ti ti-trash" aria-hidden="true"></i> Hapus data tersimpan
+      <i class="ti ti-trash" aria-hidden="true"></i> Clear saved data
     </button>
   </section>
 
@@ -121,33 +121,35 @@
         </div>
 
         <div class="sheet-parties">
-          <div><span class="label-muted">Invoice untuk</span> <span id="prevClientName">—</span></div>
-          <div><span class="label-muted">Dari</span> <span id="prevFromName">—</span></div>
+          <div><span class="label-muted">Invoice For</span> <span id="prevClientName">—</span></div>
+          <div><span class="label-muted">From</span> <span id="prevFromName">—</span></div>
         </div>
 
         <table class="sheet-table">
           <thead>
             <tr>
               <th>No</th>
-              <th>Deskripsi</th>
-              <th class="num">Qty</th>
-              <th class="num">Harga</th>
+              <th>Description</th>
+              <th>Note</th>
+              <th class="num">Note</th>
+              <th class="num">Fee Tutor</th>
+              <th class="num">Additional Fee</th>
               <th class="num">Subtotal</th>
             </tr>
           </thead>
           <tbody id="prevItemsBody"></tbody>
           <tfoot>
             <tr class="total-row">
-              <td colspan="4">Total</td>
+              <td colspan="5">Total</td>
               <td class="num" id="prevTotal">Rp0</td>
             </tr>
           </tfoot>
         </table>
 
         <div class="sheet-payment" id="sheetPayment">
-          <div class="section-label">Metode pembayaran</div>
+          <div class="section-label">Payment Method</div>
           <div class="payment-options" id="paymentOptions">
-            <div class="payment-empty" id="paymentEmpty">Belum ada metode pembayaran diisi.</div>
+            <div class="payment-empty" id="paymentEmpty">No payment method added yet.</div>
           </div>
         </div>
 

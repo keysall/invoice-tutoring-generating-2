@@ -11,8 +11,8 @@
   --accent-soft: #EDEFF7;
   --danger: #B23A2E;
   --radius: 10px;
-  --font-display: "Source Serif 4", serif;
-  --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif;
+  --font-body: Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif;
   --font-sign: "Caveat", cursive;
 }
 
@@ -140,7 +140,7 @@ input[type="file"] {
 .items-list { display: flex; flex-direction: column; gap: 10px; }
 .item-row {
   display: grid;
-  grid-template-columns: 1fr 52px 92px 28px;
+  grid-template-columns: 1fr 1fr 90px 90px 28px;
   gap: 8px;
   align-items: center;
 }

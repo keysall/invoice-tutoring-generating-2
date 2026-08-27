@@ -248,7 +248,14 @@ el("downloadBtn").addEventListener("click", async () => {
 
   try {
     const sheet = el("invoiceSheet");
-    const canvas = await html2canvas(sheet, { scale: 2, backgroundColor: "#ffffff" });
+    const canvas = await html2canvas(sheet, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      windowWidth: sheet.scrollWidth,
+      windowHeight: sheet.scrollHeight,
+      scrollX: 0,
+      scrollY: 0,
+    });
     const imgData = canvas.toDataURL("image/png");
 
     const { jsPDF } = window.jspdf;

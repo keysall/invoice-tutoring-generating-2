@@ -1,4 +1,6 @@
 // ============ State ============
+const STORAGE_KEY = "invoiceGeneratorState";
+
 let items = [
   { desc: "Math: Functions", qty: 1, price: 100000 },
 ];
@@ -18,6 +20,60 @@ function formatDateID(dateStr) {
 }
 
 function el(id) { return document.getElementById(id); }
+
+// ============ Cache (localStorage) ============
+function collectState() {
+  return {
+    fromName: el("fromName").value,
+    fromContact: el("fromContact").value,
+    clientName: el("clientName").value,
+    invoiceNumber: el("invoiceNumber").value,
+    invoiceDate: el("invoiceDate").value,
+    bankName: el("bankName").value,
+    bankAccount: el("bankAccount").value,
+    bankHolder: el("bankHolder").value,
+    closingNote: el("closingNote").value,
+    items: items,
+    qrisDataUrl: qrisDataUrl,
+  };
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(collectState()));
+  } catch (e) {
+    console.warn("Gagal menyimpan cache:", e);
+  }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const state = JSON.parse(raw);
+    el("fromName").value = state.fromName ?? el("fromName").value;
+    el("fromContact").value = state.fromContact ?? "";
+    el("clientName").value = state.clientName ?? "";
+    el("invoiceNumber").value = state.invoiceNumber ?? "";
+    el("invoiceDate").value = state.invoiceDate ?? new Date().toISOString().slice(0, 10);
+    el("bankName").value = state.bankName ?? "";
+    el("bankAccount").value = state.bankAccount ?? "";
+    el("bankHolder").value = state.bankHolder ?? "";
+    el("closingNote").value = state.closingNote ?? el("closingNote").value;
+    if (Array.isArray(state.items) && state.items.length) items = state.items;
+    qrisDataUrl = state.qrisDataUrl || null;
+    if (qrisDataUrl) el("removeQrisBtn").hidden = false;
+    return true;
+  } catch (e) {
+    console.warn("Gagal memuat cache:", e);
+    return false;
+  }
+}
+
+function clearState() {
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
 
 // ============ Line items (form side) ============
 function renderItemRows() {
@@ -161,6 +217,8 @@ function renderPreview() {
   el("prevClosingNote").textContent = el("closingNote").value || "—";
   el("prevContact").textContent = el("fromContact").value || "";
   el("prevSignature").textContent = el("fromName").value || "—";
+
+  saveState();
 }
 
 // ============ Wire up live inputs ============
@@ -171,8 +229,15 @@ function renderPreview() {
   el(id).addEventListener("input", renderPreview);
 });
 
-// ============ Default date = today ============
-el("invoiceDate").value = new Date().toISOString().slice(0, 10);
+// ============ Load cache (jika ada), fallback ke tanggal hari ini ============
+const hadSavedState = loadState();
+if (!hadSavedState) {
+  el("invoiceDate").value = new Date().toISOString().slice(0, 10);
+}
+
+el("clearCacheBtn").addEventListener("click", () => {
+  if (confirm("Hapus semua data yang tersimpan di browser ini?")) clearState();
+});
 
 // ============ PDF export ============
 el("downloadBtn").addEventListener("click", async () => {

@@ -2,7 +2,7 @@
 const STORAGE_KEY = "invoiceGeneratorState";
 
 let items = [
-  { desc: "Math: Functions", qty: 1, price: 100000 },
+  { desc: "Math: Functions", note: "", qty: 1, price: 100000, additionalFee: 0 },
 ];
 let qrisDataUrl = null;
 
@@ -42,7 +42,7 @@ function saveState() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(collectState()));
   } catch (e) {
-    console.warn("Gagal menyimpan cache:", e);
+    console.warn("Failed saving cache:", e);
   }
 }
 
@@ -65,7 +65,7 @@ function loadState() {
     if (qrisDataUrl) el("removeQrisBtn").hidden = false;
     return true;
   } catch (e) {
-    console.warn("Gagal memuat cache:", e);
+    console.warn("Failed to load cache:", e);
     return false;
   }
 }
@@ -75,7 +75,7 @@ function clearState() {
   location.reload();
 }
 
-// ============ Line items (form side) ============
+// ============ Line items (form side) RENDERRR BOSS ============
 function renderItemRows() {
   const list = el("itemsList");
   list.innerHTML = "";
@@ -83,10 +83,11 @@ function renderItemRows() {
     const row = document.createElement("div");
     row.className = "item-row";
     row.innerHTML = `
-      <input type="text" data-idx="${idx}" data-field="desc" placeholder="Deskripsi sesi" value="${escapeAttr(item.desc)}">
-      <input type="number" min="0" step="1" data-idx="${idx}" data-field="qty" value="${item.qty}">
+      <input type="text" data-idx="${idx}" data-field="desc" placeholder="Session description" value="${escapeAttr(item.desc)}">
+      <input type="text" data-idx="${idx}" data-field="note" placeholder="Note" value="${escapeAttr(item.note || "")}">
       <input type="number" min="0" step="1000" data-idx="${idx}" data-field="price" value="${item.price}">
-      <button type="button" class="item-remove" data-idx="${idx}" aria-label="Hapus baris">
+      <input type="number" min="0" step="1000" data-idx="${idx}" data-field="additionalFee" value="${item.additionalFee || 0}">
+      <button type="button" class="item-remove" data-idx="${idx}" aria-label="Remove row">
         <i class="ti ti-trash" aria-hidden="true"></i>
       </button>
     `;
@@ -122,7 +123,7 @@ function escapeHtml(str) {
 }
 
 el("addItemBtn").addEventListener("click", () => {
-  items.push({ desc: "", qty: 1, price: 0 });
+  items.push({ desc: "", note:"", qty: 1, price: 0, additionalFee: 0 });
   renderItemRows();
   renderPreview();
 });
@@ -158,20 +159,24 @@ function renderPreview() {
   // items
   const body = el("prevItemsBody");
   body.innerHTML = "";
+  
+  // preview renderrr 
   let total = 0;
   items.forEach((item, i) => {
-    const subtotal = (Number(item.qty) || 0) * (Number(item.price) || 0);
+    const subtotal = (Number(item.price) || 0) + (Number(item.additionalFee) || 0);
     total += subtotal;
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${i + 1}</td>
       <td>${escapeHtml(item.desc) || "—"}</td>
-      <td class="num">${item.qty || 0}</td>
+      <td>${escapeHtml(item.note) || "—"}</td>
       <td class="num">${formatRupiah(item.price)}</td>
+      <td class="num">${formatRupiah(item.additionalFee || 0)}</td>
       <td class="num">${formatRupiah(subtotal)}</td>
     `;
     body.appendChild(tr);
   });
+
   el("prevTotal").textContent = formatRupiah(total);
 
   // payment
@@ -185,7 +190,7 @@ function renderPreview() {
   const hasBank = bank || bankAcc || bankHolder;
 
   if (!hasQris && !hasBank) {
-    optionsWrap.innerHTML = `<div class="payment-empty">Belum ada metode pembayaran diisi.</div>`;
+    optionsWrap.innerHTML = `<div class="payment-empty">No payment method has been added yet.</div>`;
   } else {
     if (hasQris) {
       const block = document.createElement("div");
@@ -194,7 +199,7 @@ function renderPreview() {
         <img src="${qrisDataUrl}" alt="QRIS" class="qris-thumb">
         <div class="payment-text">
           <div class="payment-title">QRIS</div>
-          Scan untuk bayar
+          Scan to pay
         </div>
       `;
       optionsWrap.appendChild(block);
@@ -204,9 +209,9 @@ function renderPreview() {
       block.className = "payment-block";
       block.innerHTML = `
         <div class="payment-text">
-          <div class="payment-title">Transfer bank</div>
+          <div class="payment-title">Bank Transfer</div>
           ${escapeHtml(bank)} ${escapeHtml(bankAcc)}<br>
-          a.n. ${escapeHtml(bankHolder)}
+          Account holder:  ${escapeHtml(bankHolder)}
         </div>
       `;
       optionsWrap.appendChild(block);
@@ -236,7 +241,7 @@ if (!hadSavedState) {
 }
 
 el("clearCacheBtn").addEventListener("click", () => {
-  if (confirm("Hapus semua data yang tersimpan di browser ini?")) clearState();
+  if (confirm("Delete all data was saved from this web?")) clearState();
 });
 
 // ============ PDF export ============
@@ -244,7 +249,7 @@ el("downloadBtn").addEventListener("click", async () => {
   const btn = el("downloadBtn");
   const originalLabel = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = "Menyiapkan PDF...";
+  btn.innerHTML = "Prepare PDF...";
 
   try {
     const sheet = el("invoiceSheet");
@@ -266,7 +271,7 @@ el("downloadBtn").addEventListener("click", async () => {
     pdf.save(`${fileName}.pdf`);
   } catch (err) {
     console.error(err);
-    alert("Gagal membuat PDF. Coba lagi.");
+    alert("failed to make PDF. Please try again :(.");
   } finally {
     btn.disabled = false;
     btn.innerHTML = originalLabel;

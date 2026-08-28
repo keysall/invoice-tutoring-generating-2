@@ -102,9 +102,7 @@ function renderItemRows() {
       <input type="text" data-idx="${idx}" data-field="note" placeholder="Note" value="${escapeAttr(item.note || "")}">
       <input type="number" min="0" step="1000" data-idx="${idx}" data-field="price" value="${item.price}">
       <input type="number" min="0" step="1000" data-idx="${idx}" data-field="additionalFee" value="${item.additionalFee || 0}">
-      <button type="button" class="item-remove" data-idx="${idx}" aria-label="Remove row">
-        <i class="ti ti-trash" aria-hidden="true"></i>
-      </button>
+      <button type="button" class="item-remove" data-idx="${idx}" aria-label="Remove row">✕</button>
     `;
     list.appendChild(row);
   });
@@ -456,7 +454,7 @@ function renderTitipan() {
           <td><input type="text" data-c="${cIdx}" data-i="${iIdx}" data-field="type" placeholder="e.g. Textbook" value="${escapeAttr(item.type || "")}"></td>
           <td class="num"><input type="number" min="0" step="1000" data-c="${cIdx}" data-i="${iIdx}" data-field="price" value="${item.price || 0}"></td>
           <td><input type="text" data-c="${cIdx}" data-i="${iIdx}" data-field="note" placeholder="Note" value="${escapeAttr(item.note || "")}"></td>
-          <td><button type="button" class="item-remove remove-titipan-row-btn" data-c="${cIdx}" data-i="${iIdx}" aria-label="Remove row"><i class="ti ti-trash" aria-hidden="true"></i></button></td>
+          <td><button type="button" class="item-remove remove-titipan-row-btn" data-c="${cIdx}" data-i="${iIdx}" aria-label="Remove row">✕</button></td>
         </tr>`
       )
       .join("");

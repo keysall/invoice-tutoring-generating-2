@@ -67,10 +67,8 @@
     <div class="field-group">
       <div class="group-header-row">
         <h2 class="group-title">3. Session Details</h2>
-        <button type="button" class="btn-ghost btn-sm" id="addItemBtn">
-          <i class="ti ti-plus" aria-hidden="true"></i> Add row
-        </button>
-      </div>
+        <button type="button" class="btn-ghost btn-sm" id="addItemBtn">+ Add row</button>
+    
       <div id="itemsList" class="items-list"></div>
     </div>
 
@@ -92,9 +90,7 @@
         <span>QRIS (optional)</span>
         <input type="file" id="qrisUpload" accept="image/*">
       </label>
-      <button type="button" class="btn-ghost btn-sm" id="removeQrisBtn" hidden>
-        <i class="ti ti-x" aria-hidden="true"></i> Remove QRIS
-      </button>
+      <button type="button" class="btn-ghost btn-sm" id="removeQrisBtn" hidden>✕ Remove QRIS</button>
     </div>
 
     <div class="field-group">
@@ -105,13 +101,9 @@
       </label>
     </div>
 
-    <button type="button" class="btn-primary" id="downloadBtn">
-      <i class="ti ti-download" aria-hidden="true"></i> Download as PDF
-    </button>
+    <button type="button" class="btn-primary" id="downloadBtn">⬇ Download as PDF</button>
     <p class="hint-text">All data is processed &amp; auto-saved in your own browser — nothing is sent to any server.</p>
-    <button type="button" class="btn-ghost btn-sm" id="clearCacheBtn" style="margin:8px auto 0; display:flex;">
-      <i class="ti ti-trash" aria-hidden="true"></i> Clear saved data
-    </button>
+    <button type="button" class="btn-ghost btn-sm" id="clearCacheBtn" style="margin:8px auto 0; display:flex;">🗑 Clear saved data</button>
   </section>
 
   <!-- ============ PREVIEW PANEL ============ -->
@@ -194,9 +186,7 @@
         <h1 class="titipan-title">Kalkulator titipan</h1>
         <p class="titipan-subtitle">Track items purchased on behalf of each student, with an automatic running total.</p>
       </div>
-      <button type="button" class="btn-primary" id="addClientBtn" style="width:auto;">
-        <i class="ti ti-user-plus" aria-hidden="true"></i> Add Student
-      </button>
+      <button type="button" class="btn-primary" id="addClientBtn" style="width:auto;">+ Add Student</button>
     </div>
     <div id="clientBlocks" class="client-blocks"></div>
   </div>

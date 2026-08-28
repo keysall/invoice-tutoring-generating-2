@@ -144,14 +144,34 @@ input[type="file"] {
    Columns: Date | Subject | Note | Fee Tutor | Additional Fee | remove-button
    On mobile this switches to a stacked layout, see @media block below. */
 .items-list { display: flex; flex-direction: column; gap: 10px; }
+
+/* Item row now stacks in a 2-column grid using named areas instead of one
+   tight single-line row — the sidebar is always a fixed 420px wide, which
+   isn't enough room for 6 fields side-by-side no matter the screen size. */
 .item-row {
   display: grid;
-  grid-template-columns: 118px 1fr 70px 90px 90px 28px;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "subject subject"
+    "date note"
+    "price fee"
+    "remove remove";
   gap: 8px;
-  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
 }
 .item-row input { font-size: 13px; padding: 7px 9px; }
+.item-row .f-subject { grid-area: subject; }
+.item-row .f-date { grid-area: date; }
+.item-row .f-note { grid-area: note; }
+.item-row .f-price { grid-area: price; }
+
+.item-row .f-fee { grid-area: fee; }
+
 .item-remove {
+  grid-area: remove;
+  justify-self: end;
   background: none;
   border: none;
   color: var(--ink-faint);
@@ -402,22 +422,7 @@ input[type="file"] {
   .layout { padding: 20px 14px 60px; gap: 20px; }
   .topbar-inner { padding: 14px 16px; flex-wrap: wrap; }
 
-  /* Form line-item row: 6-column grid is too tight on a phone —
-     stack every field full-width instead. */
-  .item-row {
-    grid-template-columns: 1fr;
-    gap: 6px;
-    padding: 10px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-  }
-  .item-remove {
-    justify-self: end;
-    width: 100%;
-    justify-content: flex-start;
-    gap: 6px;
-  }
-  .item-remove::after { content: "Remove row"; font-size: 12px; }
+
 
   /* Preview sheet: less padding, smaller title so it doesn't dominate
      a narrow screen. Table itself is handled by .table-scroll above —

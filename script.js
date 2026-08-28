@@ -405,3 +405,4 @@ document.body.appendChild(clone);
 // ============ Init ============
 renderItemRows();
 renderPreview();
+renderTitipan();

@@ -97,13 +97,13 @@ function renderItemRows() {
     const row = document.createElement("div");
     row.className = "item-row";
     row.innerHTML = `
-      <input type="date" data-idx="${idx}" data-field="date" value="${escapeAttr(item.date || "")}">
-      <input type="text" data-idx="${idx}" data-field="desc" placeholder="Subject / session tutor" value="${escapeAttr(item.desc)}">
-      <input type="text" data-idx="${idx}" data-field="note" placeholder="Note" value="${escapeAttr(item.note || "")}">
-      <input type="number" min="0" step="1000" data-idx="${idx}" data-field="price" value="${item.price}">
-      <input type="number" min="0" step="1000" data-idx="${idx}" data-field="additionalFee" value="${item.additionalFee || 0}">
-      <button type="button" class="item-remove" data-idx="${idx}" aria-label="Remove row">✕</button>
-    `;
+  <input class="f-date" type="date" data-idx="${idx}" data-field="date" value="${escapeAttr(item.date || "")}">
+  <input class="f-subject" type="text" data-idx="${idx}" data-field="desc" placeholder="Subject / session tutor" value="${escapeAttr(item.desc)}">
+  <input class="f-note" type="text" data-idx="${idx}" data-field="note" placeholder="Note" value="${escapeAttr(item.note || "")}">
+  <input class="f-price" type="number" min="0" step="1000" data-idx="${idx}" data-field="price" value="${item.price}">
+  <input class="f-fee" type="number" min="0" step="1000" data-idx="${idx}" data-field="additionalFee" value="${item.additionalFee || 0}">
+  <button type="button" class="item-remove" data-idx="${idx}" aria-label="Remove row">✕</button>
+`;
     list.appendChild(row);
   });
 

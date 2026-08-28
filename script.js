@@ -2,7 +2,7 @@
 const STORAGE_KEY = "invoiceGeneratorState";
 
 let items = [
-  { desc: "Math: Functions", note: "", qty: 1, price: 100000, additionalFee: 0 },
+  { desc: "Math: Functions", note: "", price: 100000, additionalFee: 0 },
 ];
 let qrisDataUrl = null;
 
@@ -12,11 +12,11 @@ function formatRupiah(n) {
   return "Rp" + n.toLocaleString("id-ID", { maximumFractionDigits: 0 });
 }
 
-function formatDateID(dateStr) {
+function formatDateEN(dateStr) {
   if (!dateStr) return "—";
-  const d = new Date(dateStr + "T00:00:00");
+  const d = new Date(dateStr + "-01T00:00:00");
   if (isNaN(d)) return "—";
-  return d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+  return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
 
 function el(id) { return document.getElementById(id); }
@@ -55,7 +55,7 @@ function loadState() {
     el("fromContact").value = state.fromContact ?? "";
     el("clientName").value = state.clientName ?? "";
     el("invoiceNumber").value = state.invoiceNumber ?? "";
-    el("invoiceDate").value = state.invoiceDate ?? new Date().toISOString().slice(0, 10);
+    el("invoiceDate").value = state.invoiceDate ?? new Date().toISOString().slice(0, 7);
     el("bankName").value = state.bankName ?? "";
     el("bankAccount").value = state.bankAccount ?? "";
     el("bankHolder").value = state.bankHolder ?? "";
@@ -75,7 +75,7 @@ function clearState() {
   location.reload();
 }
 
-// ============ Line items (form side) RENDERRR BOSS ============
+// ============ Line items (form side) ============
 function renderItemRows() {
   const list = el("itemsList");
   list.innerHTML = "";
@@ -98,7 +98,7 @@ function renderItemRows() {
     input.addEventListener("input", (e) => {
       const idx = Number(e.target.dataset.idx);
       const field = e.target.dataset.field;
-      const val = field === "desc" ? e.target.value : Number(e.target.value);
+      const val = field === "desc" || field === "note" ? e.target.value : Number(e.target.value);
       items[idx][field] = val;
       renderPreview();
     });
@@ -123,7 +123,7 @@ function escapeHtml(str) {
 }
 
 el("addItemBtn").addEventListener("click", () => {
-  items.push({ desc: "", note:"", qty: 1, price: 0, additionalFee: 0 });
+  items.push({ desc: "", note: "", price: 0, additionalFee: 0 });
   renderItemRows();
   renderPreview();
 });
@@ -154,13 +154,12 @@ function renderPreview() {
   el("prevInvoiceNumber").textContent = el("invoiceNumber").value
     ? "Invoice No: " + el("invoiceNumber").value
     : "—";
-  el("prevDate").textContent = formatDateID(el("invoiceDate").value);
+  el("prevDate").textContent = formatDateEN(el("invoiceDate").value);
 
   // items
   const body = el("prevItemsBody");
   body.innerHTML = "";
-  
-  // preview renderrr 
+
   let total = 0;
   items.forEach((item, i) => {
     const subtotal = (Number(item.price) || 0) + (Number(item.additionalFee) || 0);
@@ -211,7 +210,7 @@ function renderPreview() {
         <div class="payment-text">
           <div class="payment-title">Bank Transfer</div>
           ${escapeHtml(bank)} ${escapeHtml(bankAcc)}<br>
-          Account holder:  ${escapeHtml(bankHolder)}
+          Account holder: ${escapeHtml(bankHolder)}
         </div>
       `;
       optionsWrap.appendChild(block);
@@ -234,14 +233,14 @@ function renderPreview() {
   el(id).addEventListener("input", renderPreview);
 });
 
-// ============ Load cache (jika ada), fallback ke tanggal hari ini ============
+// ============ Load cache (if any), fallback to today's date ============
 const hadSavedState = loadState();
 if (!hadSavedState) {
   el("invoiceDate").value = new Date().toISOString().slice(0, 10);
 }
 
 el("clearCacheBtn").addEventListener("click", () => {
-  if (confirm("Delete all data was saved from this web?")) clearState();
+  if (confirm("Delete all data saved from this browser?")) clearState();
 });
 
 // ============ PDF export ============
@@ -249,7 +248,7 @@ el("downloadBtn").addEventListener("click", async () => {
   const btn = el("downloadBtn");
   const originalLabel = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = "Prepare PDF...";
+  btn.innerHTML = "Preparing PDF...";
 
   try {
     const sheet = el("invoiceSheet");
@@ -271,7 +270,7 @@ el("downloadBtn").addEventListener("click", async () => {
     pdf.save(`${fileName}.pdf`);
   } catch (err) {
     console.error(err);
-    alert("failed to make PDF. Please try again :(.");
+    alert("Failed to make PDF. Please try again.");
   } finally {
     btn.disabled = false;
     btn.innerHTML = originalLabel;

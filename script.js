@@ -263,8 +263,45 @@ el("downloadBtn").addEventListener("click", async () => {
     const imgData = canvas.toDataURL("image/png");
 
     const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ unit: "px", format: [canvas.width, canvas.height] });
-    pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
+    const pdf = new jsPDF({ unit: "mm", format: "a4" });
+    
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 15;
+    const contentWidth = pageWidth - margin * 2;
+    const contentHeight = pageHeight - margin * 2;
+    
+    const pxToMm = contentWidth / canvas.width;
+    const scaledHeightMm = canvas.height * pxToMm;
+    
+    if (scaledHeightMm <= contentHeight) {
+      // muat dalam 1 halaman
+      pdf.addImage(imgData, "PNG", margin, margin, contentWidth, scaledHeightMm);
+    } else {
+      // konten panjang → dipecah otomatis ke beberapa halaman A4
+      const pageHeightPx = contentHeight / pxToMm;
+      let renderedPx = 0;
+      let pageIndex = 0;
+    
+      while (renderedPx < canvas.height) {
+        const sliceHeightPx = Math.min(pageHeightPx, canvas.height - renderedPx);
+    
+        const pageCanvas = document.createElement("canvas");
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sliceHeightPx;
+        pageCanvas.getContext("2d").drawImage(
+          canvas,
+          0, renderedPx, canvas.width, sliceHeightPx,
+          0, 0, canvas.width, sliceHeightPx
+        );
+
+    if (pageIndex > 0) pdf.addPage();
+    pdf.addImage(pageCanvas.toDataURL("image/png"), "PNG", margin, margin, contentWidth, sliceHeightPx * pxToMm);
+
+    renderedPx += sliceHeightPx;
+    pageIndex++;
+  }
+}
 
     const fileName = (el("invoiceNumber").value || "invoice").replace(/[^\w-]+/g, "_");
     pdf.save(`${fileName}.pdf`);

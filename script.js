@@ -1,8 +1,11 @@
 // ============ State ============
 const STORAGE_KEY = "invoiceGeneratorState";
 
+// Each item row: date (session date), desc (subject/session tutor), note,
+// price (fee tutor), additionalFee. No per-row subtotal anymore — only a
+// single grand Total Fee at the bottom of the table.
 let items = [
-  { desc: "Math: Functions", note: "", price: 100000, additionalFee: 0 },
+  { date: "", desc: "Math: Functions", note: "", price: 100000, additionalFee: 0 },
 ];
 let qrisDataUrl = null;
 
@@ -12,11 +15,21 @@ function formatRupiah(n) {
   return "Rp" + n.toLocaleString("id-ID", { maximumFractionDigits: 0 });
 }
 
-function formatDateEN(dateStr) {
-  if (!dateStr) return "—";
-  const d = new Date(dateStr + "-01T00:00:00");
+// Invoice header date = billing month (input type="month" gives "YYYY-MM").
+function formatDateEN(monthStr) {
+  if (!monthStr) return "—";
+  const d = new Date(monthStr + "-01T00:00:00");
   if (isNaN(d)) return "—";
   return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
+
+// Per-session date (input type="date"). en-GB locale gives "Tuesday, 18 August 2026"
+// (day before month), matching the original design.
+function formatSessionDate(dateStr) {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr + "T00:00:00");
+  if (isNaN(d)) return "—";
+  return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
 
 function el(id) { return document.getElementById(id); }
@@ -76,6 +89,7 @@ function clearState() {
 }
 
 // ============ Line items (form side) ============
+// Row fields: date | desc (subject) | note | price (fee tutor) | additionalFee
 function renderItemRows() {
   const list = el("itemsList");
   list.innerHTML = "";
@@ -83,7 +97,8 @@ function renderItemRows() {
     const row = document.createElement("div");
     row.className = "item-row";
     row.innerHTML = `
-      <input type="text" data-idx="${idx}" data-field="desc" placeholder="Session description" value="${escapeAttr(item.desc)}">
+      <input type="date" data-idx="${idx}" data-field="date" value="${escapeAttr(item.date || "")}">
+      <input type="text" data-idx="${idx}" data-field="desc" placeholder="Subject / session tutor" value="${escapeAttr(item.desc)}">
       <input type="text" data-idx="${idx}" data-field="note" placeholder="Note" value="${escapeAttr(item.note || "")}">
       <input type="number" min="0" step="1000" data-idx="${idx}" data-field="price" value="${item.price}">
       <input type="number" min="0" step="1000" data-idx="${idx}" data-field="additionalFee" value="${item.additionalFee || 0}">
@@ -98,8 +113,8 @@ function renderItemRows() {
     input.addEventListener("input", (e) => {
       const idx = Number(e.target.dataset.idx);
       const field = e.target.dataset.field;
-      const val = field === "desc" || field === "note" ? e.target.value : Number(e.target.value);
-      items[idx][field] = val;
+      const isText = field === "desc" || field === "note" || field === "date";
+      items[idx][field] = isText ? e.target.value : Number(e.target.value);
       renderPreview();
     });
   });
@@ -123,7 +138,7 @@ function escapeHtml(str) {
 }
 
 el("addItemBtn").addEventListener("click", () => {
-  items.push({ desc: "", note: "", price: 0, additionalFee: 0 });
+  items.push({ date: "", desc: "", note: "", price: 0, additionalFee: 0 });
   renderItemRows();
   renderPreview();
 });
@@ -156,22 +171,21 @@ function renderPreview() {
     : "—";
   el("prevDate").textContent = formatDateEN(el("invoiceDate").value);
 
-  // items
+  // items — table: No | Date | Subject | Note | Fee Tutor | Additional Fee
   const body = el("prevItemsBody");
   body.innerHTML = "";
 
   let total = 0;
   items.forEach((item, i) => {
-    const subtotal = (Number(item.price) || 0) + (Number(item.additionalFee) || 0);
-    total += subtotal;
+    total += (Number(item.price) || 0) + (Number(item.additionalFee) || 0);
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${i + 1}</td>
+      <td>${formatSessionDate(item.date)}</td>
       <td>${escapeHtml(item.desc) || "—"}</td>
       <td>${escapeHtml(item.note) || "—"}</td>
       <td class="num">${formatRupiah(item.price)}</td>
       <td class="num">${formatRupiah(item.additionalFee || 0)}</td>
-      <td class="num">${formatRupiah(subtotal)}</td>
     `;
     body.appendChild(tr);
   });
@@ -233,10 +247,10 @@ function renderPreview() {
   el(id).addEventListener("input", renderPreview);
 });
 
-// ============ Load cache (if any), fallback to today's date ============
+// ============ Load cache (if any), fallback to current month ============
 const hadSavedState = loadState();
 if (!hadSavedState) {
-  el("invoiceDate").value = new Date().toISOString().slice(0, 10);
+  el("invoiceDate").value = new Date().toISOString().slice(0, 7); // "YYYY-MM"
 }
 
 el("clearCacheBtn").addEventListener("click", () => {
@@ -244,6 +258,9 @@ el("clearCacheBtn").addEventListener("click", () => {
 });
 
 // ============ PDF export ============
+// Always exports on real A4 paper size. If the invoice content is taller
+// than one A4 page (e.g. ~10+ session rows), it automatically continues
+// onto page 2, 3, etc. — text stays full-size, it never shrinks to fit.
 el("downloadBtn").addEventListener("click", async () => {
   const btn = el("downloadBtn");
   const originalLabel = btn.innerHTML;
@@ -252,6 +269,10 @@ el("downloadBtn").addEventListener("click", async () => {
 
   try {
     const sheet = el("invoiceSheet");
+    // windowWidth/Height forces html2canvas to capture the sheet's full
+    // natural size, regardless of the current browser/phone viewport —
+    // this is what keeps the PDF looking like the desktop layout even
+    // when exporting from a phone.
     const canvas = await html2canvas(sheet, {
       scale: 2,
       backgroundColor: "#ffffff",
@@ -260,32 +281,31 @@ el("downloadBtn").addEventListener("click", async () => {
       scrollX: 0,
       scrollY: 0,
     });
-    const imgData = canvas.toDataURL("image/png");
 
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ unit: "mm", format: "a4" });
-    
+
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const margin = 15;
     const contentWidth = pageWidth - margin * 2;
     const contentHeight = pageHeight - margin * 2;
-    
+
     const pxToMm = contentWidth / canvas.width;
     const scaledHeightMm = canvas.height * pxToMm;
-    
+
     if (scaledHeightMm <= contentHeight) {
-      // muat dalam 1 halaman
-      pdf.addImage(imgData, "PNG", margin, margin, contentWidth, scaledHeightMm);
+      // Fits on a single A4 page.
+      pdf.addImage(canvas.toDataURL("image/png"), "PNG", margin, margin, contentWidth, scaledHeightMm);
     } else {
-      // konten panjang → dipecah otomatis ke beberapa halaman A4
+      // Content is longer than one page — slice it into multiple A4 pages.
       const pageHeightPx = contentHeight / pxToMm;
       let renderedPx = 0;
       let pageIndex = 0;
-    
+
       while (renderedPx < canvas.height) {
         const sliceHeightPx = Math.min(pageHeightPx, canvas.height - renderedPx);
-    
+
         const pageCanvas = document.createElement("canvas");
         pageCanvas.width = canvas.width;
         pageCanvas.height = sliceHeightPx;
@@ -295,13 +315,13 @@ el("downloadBtn").addEventListener("click", async () => {
           0, 0, canvas.width, sliceHeightPx
         );
 
-    if (pageIndex > 0) pdf.addPage();
-    pdf.addImage(pageCanvas.toDataURL("image/png"), "PNG", margin, margin, contentWidth, sliceHeightPx * pxToMm);
+        if (pageIndex > 0) pdf.addPage();
+        pdf.addImage(pageCanvas.toDataURL("image/png"), "PNG", margin, margin, contentWidth, sliceHeightPx * pxToMm);
 
-    renderedPx += sliceHeightPx;
-    pageIndex++;
-  }
-}
+        renderedPx += sliceHeightPx;
+        pageIndex++;
+      }
+    }
 
     const fileName = (el("invoiceNumber").value || "invoice").replace(/[^\w-]+/g, "_");
     pdf.save(`${fileName}.pdf`);

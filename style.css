@@ -258,9 +258,9 @@ input[type="file"] {
   text-align: left;
   font-weight: 500;
   color: var(--ink-soft);
-  font-size: 11px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   padding: 0 6px 10px;
   border-bottom: 1.5px solid var(--ink);
   white-space: normal;

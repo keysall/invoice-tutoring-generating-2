@@ -273,7 +273,7 @@ input[type="file"] {
   word-break: break-word;
 }
 .sheet-table .num { text-align: right; }
-.sheet-table th:nth-child(1), .sheet-table td:nth-child(1) { width: 8%; }
+.sheet-table th:nth-child(1), .sheet-table td:nth-child(1) { width: 10%; }
 .sheet-table th:nth-child(2), .sheet-table td:nth-child(2) { width: 26%; }
 .sheet-table th:nth-child(3), .sheet-table td:nth-child(3) { width: 20%; }
 .sheet-table th:nth-child(4), .sheet-table td:nth-child(4) { width: 16%; }

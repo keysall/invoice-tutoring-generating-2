@@ -323,7 +323,7 @@ const cloneFooter = clone.querySelector(".sheet-footer");
 const cloneFooterNote = clone.querySelector(".footer-note");
 const cloneFooterSign = clone.querySelector(".footer-sign");
 
-clone.style.padding = "40px";
+clone.style.padding = "24px";
 if (cloneHead) { cloneHead.style.flexDirection = "row"; cloneHead.style.alignItems = "flex-start"; cloneHead.style.gap = "0"; }
 if (cloneTitle) cloneTitle.style.fontSize = "44px";
 if (cloneMeta) cloneMeta.style.textAlign = "right";

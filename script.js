@@ -262,9 +262,9 @@ el("clearCacheBtn").addEventListener("click", () => {
 // than one A4 page (e.g. ~10+ session rows), it automatically continues
 // onto page 2, 3, etc. — text stays full-size, it never shrinks to fit.
 //
-// Finds safe places to cut between pages: block boundaries (header /
-// parties / table / payment / footer) and, inside the table, between
-// <tr> rows — so a page break never lands mid-row or mid-section.
+// To avoid any issue with mobile scroll position / narrow viewport, we
+// build an OFF-SCREEN CLONE of the invoice at a fixed desktop-like width
+// and capture that instead of the visible (possibly scrolled/narrow) sheet.
 function getPageBreakpoints(sheetEl, scale) {
   const sheetTop = sheetEl.getBoundingClientRect().top;
   const points = new Set([0]);
@@ -294,38 +294,33 @@ el("downloadBtn").addEventListener("click", async () => {
   btn.disabled = true;
   btn.innerHTML = "Preparing PDF...";
 
-  const sheet = el("invoiceSheet");
+  // --- Build an off-screen clone at a fixed width ---
+  const original = el("invoiceSheet");
+  const clone = original.cloneNode(true);
+  clone.id = "invoiceSheetExportClone";
+  clone.style.position = "fixed";
+  clone.style.top = "0";
+  clone.style.left = "-10000px";
+  clone.style.width = "800px";
+  clone.style.margin = "0";
+  clone.style.zIndex = "-1";
 
-  // --- Neutralize the mobile horizontal-scroll table wrapper before capture ---
-  // On phones the table lives inside a scrollable .table-scroll box (see
-  // style.css). If that box was scrolled sideways when the button was
-  // tapped, html2canvas would only capture the scrolled-into-view part —
-  // cutting off the left columns (No / Date / Subject). Temporarily force
-  // it to show the full table, then restore afterwards.
-  const scrollWrap = sheet.querySelector(".table-scroll");
-  const table = sheet.querySelector(".sheet-table");
-  const prevScrollLeft = scrollWrap ? scrollWrap.scrollLeft : 0;
-  const prevOverflow = scrollWrap ? scrollWrap.style.overflow : "";
-  const prevMinWidth = table ? table.style.minWidth : "";
-  if (scrollWrap) {
-    scrollWrap.scrollLeft = 0;
-    scrollWrap.style.overflow = "visible";
-  }
-  if (table) table.style.minWidth = "0";
+  // Inside the clone, remove the mobile scroll restriction entirely —
+  // it doesn't need to scroll, it just needs to show everything.
+  const cloneScrollWrap = clone.querySelector(".table-scroll");
+  const cloneTable = clone.querySelector(".sheet-table");
+  if (cloneScrollWrap) cloneScrollWrap.style.overflow = "visible";
+  if (cloneTable) cloneTable.style.minWidth = "0";
+
+  document.body.appendChild(clone);
+  // Force layout to settle before measuring/capturing.
+  void clone.offsetHeight;
 
   try {
     const scale = 2;
-    // windowWidth/Height forces html2canvas to capture the sheet's full
-    // natural size, regardless of the current browser/phone viewport —
-    // this is what keeps the PDF looking like the desktop layout even
-    // when exporting from a phone.
-    const canvas = await html2canvas(sheet, {
+    const canvas = await html2canvas(clone, {
       scale,
       backgroundColor: "#ffffff",
-      windowWidth: sheet.scrollWidth,
-      windowHeight: sheet.scrollHeight,
-      scrollX: 0,
-      scrollY: 0,
     });
 
     const { jsPDF } = window.jspdf;
@@ -341,13 +336,10 @@ el("downloadBtn").addEventListener("click", async () => {
     const scaledHeightMm = canvas.height * pxToMm;
 
     if (scaledHeightMm <= contentHeight) {
-      // Fits on a single A4 page.
       pdf.addImage(canvas.toDataURL("image/png"), "PNG", margin, margin, contentWidth, scaledHeightMm);
     } else {
-      // Content is longer than one page — slice it into multiple A4 pages,
-      // cutting only at safe breakpoints (never mid-row / mid-section).
       const pageHeightPx = contentHeight / pxToMm;
-      const breakpoints = getPageBreakpoints(sheet, scale);
+      const breakpoints = getPageBreakpoints(clone, scale);
       let renderedPx = 0;
       let pageIndex = 0;
 
@@ -385,13 +377,7 @@ el("downloadBtn").addEventListener("click", async () => {
     console.error(err);
     alert("Failed to make PDF. Please try again.");
   } finally {
-    // Restore the mobile table-scroll behavior exactly as it was.
-    if (scrollWrap) {
-      scrollWrap.scrollLeft = prevScrollLeft;
-      scrollWrap.style.overflow = prevOverflow;
-    }
-    if (table) table.style.minWidth = prevMinWidth;
-
+    document.body.removeChild(clone);
     btn.disabled = false;
     btn.innerHTML = originalLabel;
   }

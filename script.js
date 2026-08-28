@@ -46,6 +46,7 @@ function collectState() {
     bankAccount: el("bankAccount").value,
     bankHolder: el("bankHolder").value,
     closingNote: el("closingNote").value,
+    signatureName: el("signatureName").value,
     items: items,
     qrisDataUrl: qrisDataUrl,
   };
@@ -73,6 +74,7 @@ function loadState() {
     el("bankAccount").value = state.bankAccount ?? "";
     el("bankHolder").value = state.bankHolder ?? "";
     el("closingNote").value = state.closingNote ?? el("closingNote").value;
+    el("signatureName").value = state.signatureName ?? "";
     if (Array.isArray(state.items) && state.items.length) items = state.items;
     qrisDataUrl = state.qrisDataUrl || null;
     if (qrisDataUrl) el("removeQrisBtn").hidden = false;
@@ -232,7 +234,7 @@ function renderPreview() {
   // footer
   el("prevClosingNote").textContent = el("closingNote").value || "—";
   el("prevContact").textContent = el("fromContact").value || "";
-  el("prevSignature").textContent = el("fromName").value || "—";
+  el("prevSignature").textContent = el("signatureName").value || "—";
 
   saveState();
 }
@@ -240,7 +242,7 @@ function renderPreview() {
 // ============ Wire up live inputs ============
 [
   "fromName", "fromContact", "clientName", "invoiceNumber", "invoiceDate",
-  "bankName", "bankAccount", "bankHolder", "closingNote",
+  "bankName", "bankAccount", "bankHolder", "closingNote", "signatureName",
 ].forEach((id) => {
   el(id).addEventListener("input", renderPreview);
 });

@@ -310,9 +310,28 @@ el("downloadBtn").addEventListener("click", async () => {
   const cloneScrollWrap = clone.querySelector(".table-scroll");
   const cloneTable = clone.querySelector(".sheet-table");
   if (cloneScrollWrap) cloneScrollWrap.style.overflow = "visible";
-  if (cloneTable) cloneTable.style.minWidth = "0";
+if (cloneTable) cloneTable.style.minWidth = "0";
 
-  document.body.appendChild(clone);
+// Force "desktop" appearance on the clone no matter how narrow the phone's
+// actual screen is — media queries check the real browser viewport, not
+// this clone's own width, so without this the mobile @media rules still
+// sneak in and wreck the layout (stacked title/date, left-aligned footer).
+const cloneHead = clone.querySelector(".sheet-head");
+const cloneTitle = clone.querySelector(".sheet-title");
+const cloneMeta = clone.querySelector(".sheet-meta");
+const cloneFooter = clone.querySelector(".sheet-footer");
+const cloneFooterNote = clone.querySelector(".footer-note");
+const cloneFooterSign = clone.querySelector(".footer-sign");
+
+clone.style.padding = "40px";
+if (cloneHead) { cloneHead.style.flexDirection = "row"; cloneHead.style.alignItems = "flex-start"; cloneHead.style.gap = "0"; }
+if (cloneTitle) cloneTitle.style.fontSize = "44px";
+if (cloneMeta) cloneMeta.style.textAlign = "right";
+if (cloneFooter) { cloneFooter.style.flexDirection = "row"; cloneFooter.style.alignItems = "flex-end"; cloneFooter.style.gap = "24px"; }
+if (cloneFooterNote) cloneFooterNote.style.maxWidth = "60%";
+if (cloneFooterSign) cloneFooterSign.style.textAlign = "right";
+
+document.body.appendChild(clone);
   // Force layout to settle before measuring/capturing.
   void clone.offsetHeight;
 

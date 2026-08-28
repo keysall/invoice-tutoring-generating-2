@@ -440,6 +440,7 @@ function loadTitipanState() {
 
 function renderTitipan() {
   const wrap = el("clientBlocks");
+  if (!wrap) return;
   wrap.innerHTML = "";
 
   titipanClients.forEach((client, cIdx) => {
@@ -542,10 +543,12 @@ function renderTitipan() {
   saveTitipanState();
 }
 
-el("addClientBtn").addEventListener("click", () => {
-  titipanClients.push({ name: "", items: [{ date: "", type: "", price: 0, note: "" }] });
-  renderTitipan();
-});
+if (el("addClientBtn")) {
+  el("addClientBtn").addEventListener("click", () => {
+    titipanClients.push({ name: "", items: [{ date: "", type: "", price: 0, note: "" }] });
+    renderTitipan();
+  });
+}
 
 loadTitipanState();
 

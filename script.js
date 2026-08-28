@@ -410,7 +410,7 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
   });
 });
 
-// ============ TAB 2: Student Deposit Calculator ============
+// ============ TAB 2: kalkulatorrrr titipan ============
 const TITIPAN_STORAGE_KEY = "titipanCalculatorState";
 
 let titipanClients = [
@@ -492,7 +492,11 @@ function renderTitipan() {
     });
   });
 
-  // item field inputs
+  // item field inputs — update data only, DON'T call renderTitipan() here.
+  // Re-rendering on every keystroke rebuilds every <input> in the table,
+  // which kicks focus out of the box you're typing in. We only touch the
+  // Total number directly (via DOM), since that's the only visible thing
+  // that needs to change while typing.
   wrap.querySelectorAll("tbody input").forEach((input) => {
     input.addEventListener("input", (e) => {
       const c = Number(e.target.dataset.c);
@@ -500,7 +504,12 @@ function renderTitipan() {
       const field = e.target.dataset.field;
       const isText = field === "date" || field === "type" || field === "note";
       titipanClients[c].items[i][field] = isText ? e.target.value : Number(e.target.value);
-      renderTitipan();
+
+      const total = titipanClients[c].items.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+      const totalCell = wrap.children[c].querySelector("tfoot td.num");
+      if (totalCell) totalCell.textContent = formatRupiah(total);
+
+      saveTitipanState();
     });
   });
 

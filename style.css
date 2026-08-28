@@ -570,7 +570,6 @@ input[type="file"] {
 @media (max-width: 640px) {
   .titipan-wrap { padding: 20px 14px 60px; }
   .titipan-header { flex-direction: column; }
-
   .titipan-table thead { display: none; }
   .titipan-table, .titipan-table tbody, .titipan-table tr, .titipan-table td {
     display: block;
@@ -585,16 +584,13 @@ input[type="file"] {
     border-bottom: 1px solid var(--border);
   }
   .titipan-table td { border-bottom: none; padding: 0; }
-
-  .titipan-table td:nth-child(1) { flex: 0 0 20px; order: 1; }      /* No */
-  .titipan-table td:nth-child(2) { flex: 1 1 45%; order: 2; }        /* Date */
-  .titipan-table td:nth-child(4) { flex: 1 1 40%; order: 3; }        /* Price — moved earlier */
-  .titipan-table td:nth-child(3) { flex: 1 1 100%; order: 4; }       /* Type — full width to type in */
-  .titipan-table td:nth-child(5) { flex: 1 1 100%; order: 5; }       /* Note */
-  .titipan-table td:nth-child(6) { flex: 0 0 auto; order: 6; margin-left: auto; } /* remove btn */
-
+  .titipan-table td:nth-child(1) { flex: 0 0 20px; order: 1; }
+  .titipan-table td:nth-child(2) { flex: 1 1 45%; order: 2; }
+  .titipan-table td:nth-child(4) { flex: 1 1 40%; order: 3; }
+  .titipan-table td:nth-child(3) { flex: 1 1 100%; order: 4; }
+  .titipan-table td:nth-child(5) { flex: 1 1 100%; order: 5; }
+  .titipan-table td:nth-child(6) { flex: 0 0 auto; order: 6; margin-left: auto; }
   .titipan-table input { width: 100%; }
-
   .titipan-table td:nth-child(2)::before { content: "Date"; }
   .titipan-table td:nth-child(3)::before { content: "Type"; }
   .titipan-table td:nth-child(4)::before { content: "Price"; }
@@ -607,9 +603,8 @@ input[type="file"] {
     color: var(--ink-faint);
     margin-bottom: 3px;
   }
-
   .titipan-table tfoot tr { flex-wrap: nowrap; justify-content: space-between; border-bottom: none; }
-  .titipan-table tfoot td::before { content: none; }
+  .titipan-table tfoot td::before { content: none !important; }
 }
 
 .site-footer {

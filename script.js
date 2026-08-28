@@ -402,6 +402,153 @@ document.body.appendChild(clone);
   }
 });
 
+// ============ TABS ============
+document.querySelectorAll(".tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+    btn.classList.add("active");
+    el(btn.dataset.tab).classList.add("active");
+  });
+});
+
+// ============ TAB 2: Student Deposit Calculator ============
+const TITIPAN_STORAGE_KEY = "titipanCalculatorState";
+
+let titipanClients = [
+  { name: "", items: [{ date: "", type: "", price: 0, note: "" }] },
+];
+
+function saveTitipanState() {
+  try {
+    localStorage.setItem(TITIPAN_STORAGE_KEY, JSON.stringify(titipanClients));
+  } catch (e) {
+    console.warn("Failed saving titipan cache:", e);
+  }
+}
+
+function loadTitipanState() {
+  try {
+    const raw = localStorage.getItem(TITIPAN_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length) titipanClients = parsed;
+  } catch (e) {
+    console.warn("Failed loading titipan cache:", e);
+  }
+}
+
+function renderTitipan() {
+  const wrap = el("clientBlocks");
+  wrap.innerHTML = "";
+
+  titipanClients.forEach((client, cIdx) => {
+    const block = document.createElement("div");
+    block.className = "client-block";
+
+    const rowsHtml = client.items
+      .map(
+        (item, iIdx) => `
+        <tr>
+          <td>${iIdx + 1}</td>
+          <td><input type="date" data-c="${cIdx}" data-i="${iIdx}" data-field="date" value="${escapeAttr(item.date || "")}"></td>
+          <td><input type="text" data-c="${cIdx}" data-i="${iIdx}" data-field="type" placeholder="e.g. Textbook" value="${escapeAttr(item.type || "")}"></td>
+          <td class="num"><input type="number" min="0" step="1000" data-c="${cIdx}" data-i="${iIdx}" data-field="price" value="${item.price || 0}"></td>
+          <td><input type="text" data-c="${cIdx}" data-i="${iIdx}" data-field="note" placeholder="Note" value="${escapeAttr(item.note || "")}"></td>
+          <td><button type="button" class="item-remove remove-titipan-row-btn" data-c="${cIdx}" data-i="${iIdx}" aria-label="Remove row"><i class="ti ti-trash" aria-hidden="true"></i></button></td>
+        </tr>`
+      )
+      .join("");
+
+    const total = client.items.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+
+    block.innerHTML = `
+      <div class="client-block-head">
+        <input type="text" class="client-name-input" data-c="${cIdx}" placeholder="Student name" value="${escapeAttr(client.name || "")}">
+        <button type="button" class="btn-ghost btn-sm remove-client-btn" data-c="${cIdx}">
+          <i class="ti ti-trash" aria-hidden="true"></i> Remove student
+        </button>
+      </div>
+      <table class="titipan-table">
+        <thead>
+          <tr><th>No</th><th>Date</th><th>Type</th><th class="num">Price</th><th>Note</th><th></th></tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+        <tfoot>
+          <tr><td colspan="3">Total</td><td class="num">${formatRupiah(total)}</td><td colspan="2"></td></tr>
+        </tfoot>
+      </table>
+      <button type="button" class="btn-ghost btn-sm add-titipan-row-btn" data-c="${cIdx}">
+        <i class="ti ti-plus" aria-hidden="true"></i> Add item
+      </button>
+    `;
+    wrap.appendChild(block);
+  });
+
+  // client name inputs
+  wrap.querySelectorAll(".client-name-input").forEach((input) => {
+    input.addEventListener("input", (e) => {
+      titipanClients[Number(e.target.dataset.c)].name = e.target.value;
+      saveTitipanState();
+    });
+  });
+
+  // item field inputs
+  wrap.querySelectorAll("tbody input").forEach((input) => {
+    input.addEventListener("input", (e) => {
+      const c = Number(e.target.dataset.c);
+      const i = Number(e.target.dataset.i);
+      const field = e.target.dataset.field;
+      const isText = field === "date" || field === "type" || field === "note";
+      titipanClients[c].items[i][field] = isText ? e.target.value : Number(e.target.value);
+      renderTitipan();
+    });
+  });
+
+  // add row per client
+  wrap.querySelectorAll(".add-titipan-row-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const c = Number(e.currentTarget.dataset.c);
+      titipanClients[c].items.push({ date: "", type: "", price: 0, note: "" });
+      renderTitipan();
+    });
+  });
+
+  // remove row
+  wrap.querySelectorAll(".remove-titipan-row-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const c = Number(e.currentTarget.dataset.c);
+      const i = Number(e.currentTarget.dataset.i);
+      titipanClients[c].items.splice(i, 1);
+      if (titipanClients[c].items.length === 0) {
+        titipanClients[c].items.push({ date: "", type: "", price: 0, note: "" });
+      }
+      renderTitipan();
+    });
+  });
+
+  // remove whole student block
+  wrap.querySelectorAll(".remove-client-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const c = Number(e.currentTarget.dataset.c);
+      titipanClients.splice(c, 1);
+      if (titipanClients.length === 0) {
+        titipanClients.push({ name: "", items: [{ date: "", type: "", price: 0, note: "" }] });
+      }
+      renderTitipan();
+    });
+  });
+
+  saveTitipanState();
+}
+
+el("addClientBtn").addEventListener("click", () => {
+  titipanClients.push({ name: "", items: [{ date: "", type: "", price: 0, note: "" }] });
+  renderTitipan();
+});
+
+loadTitipanState();
+
 // ============ Init ============
 renderItemRows();
 renderPreview();

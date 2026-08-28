@@ -432,3 +432,133 @@ input[type="file"] {
      since there's no side-by-side space for it to stick to. */
   .preview-sticky { position: static; top: auto; }
 }
+/* ============================================================
+   TABS
+   ============================================================ */
+.tab-bar {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 14px 6px;
+  margin-right: 24px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  cursor: pointer;
+}
+.tab-btn:hover { color: var(--ink-soft); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ============================================================
+   TAB 2 — STUDENT DEPOSIT CALCULATOR
+   ============================================================ */
+.titipan-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+.titipan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.titipan-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+.titipan-subtitle {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin: 0;
+  max-width: 480px;
+}
+
+.client-blocks { display: flex; flex-direction: column; gap: 20px; }
+
+.client-block {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+.client-block-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.client-name-input {
+  flex: 1;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  padding: 9px 11px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--paper);
+  color: var(--ink);
+}
+.client-name-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+.titipan-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.titipan-table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--ink-soft);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 0 6px 8px;
+  border-bottom: 1.5px solid var(--ink);
+}
+.titipan-table th.num { text-align: right; }
+.titipan-table td {
+  padding: 6px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.titipan-table td.num { text-align: right; }
+.titipan-table input[type="text"],
+.titipan-table input[type="date"],
+.titipan-table input[type="number"] {
+  font-size: 13px;
+  padding: 6px 8px;
+}
+.titipan-table tfoot td {
+  border-bottom: none;
+  border-top: 1.5px solid var(--ink);
+  font-weight: 600;
+  padding-top: 10px;
+}
+
+/* Mobile: same idea as the invoice table — items list can get cramped */
+@media (max-width: 640px) {
+  .titipan-wrap { padding: 20px 14px 60px; }
+  .titipan-header { flex-direction: column; }
+  .titipan-table { display: block; overflow-x: auto; }
+  .titipan-table thead, .titipan-table tbody, .titipan-table tr { display: revert; }
+}

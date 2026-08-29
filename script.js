@@ -5,9 +5,13 @@ const STORAGE_KEY = "invoiceGeneratorState";
 // price (fee tutor), additionalFee. No per-row subtotal anymore — only a
 // single grand Total Fee at the bottom of the table.
 let items = [
-  { date: "", desc: "Math: Functions", note: "", price: 100000, additionalFee: 0 },
+  { date: "", desc: "Math: Functions", note: "Titipan", price: 100000, additionalFee: 0 },
 ];
 let qrisDataUrl = null;
+let titipanClients = [
+  { name: "Braun", items: [{ date: "", type: "Bloodbathtub", price: 10000, note: "" }] },
+];
+
 
 // ============ Helpers ============
 function formatRupiah(n) {
@@ -161,6 +165,8 @@ el("removeQrisBtn").addEventListener("click", () => {
   el("removeQrisBtn").hidden = true;
   renderPreview();
 });
+
+
 
 // ============ Preview render ============
 function renderPreview() {

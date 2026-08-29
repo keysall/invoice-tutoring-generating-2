@@ -323,7 +323,7 @@ const cloneFooter = clone.querySelector(".sheet-footer");
 const cloneFooterNote = clone.querySelector(".footer-note");
 const cloneFooterSign = clone.querySelector(".footer-sign");
 
-clone.style.padding = "24px";
+clone.style.padding = "16px";
 if (cloneHead) { cloneHead.style.flexDirection = "row"; cloneHead.style.alignItems = "flex-start"; cloneHead.style.gap = "0"; }
 if (cloneTitle) cloneTitle.style.fontSize = "44px";
 if (cloneMeta) cloneMeta.style.textAlign = "right";
@@ -354,9 +354,11 @@ document.body.appendChild(clone);
     const pxToMm = contentWidth / canvas.width;
     const scaledHeightMm = canvas.height * pxToMm;
 
+    // ngecelin ukuran ya JANGAN DIHAPUS
     if (scaledHeightMm <= contentHeight) {
-      pdf.addImage(canvas.toDataURL("image/png"), "PNG", margin, margin, contentWidth, scaledHeightMm);
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, contentWidth, scaledHeightMm);
     } else {
+    
       const pageHeightPx = contentHeight / pxToMm;
       const breakpoints = getPageBreakpoints(clone, scale);
       let renderedPx = 0;
@@ -382,9 +384,10 @@ document.body.appendChild(clone);
           0, 0, canvas.width, sliceHeightPx
         );
 
+        // BUAT NGECELIN UKURAN PDF JGN DIHAPUS!!!
         if (pageIndex > 0) pdf.addPage();
-        pdf.addImage(pageCanvas.toDataURL("image/png"), "PNG", margin, margin, contentWidth, sliceHeightPx * pxToMm);
-
+        pdf.addImage(pageCanvas.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, contentWidth, sliceHeightPx * pxToMm);
+        
         renderedPx = cut;
         pageIndex++;
       }

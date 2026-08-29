@@ -662,13 +662,15 @@ input[type="file"] {
 .sheet-table-additional th:nth-child(5), .sheet-table-additional td:nth-child(5) { width:18%; }
 
 .grand-total-row {
-  display:flex; justify-content:space-between;
-  margin-top:14px; padding-top:14px;
-  border-top:1.5px solid var(--ink);
- 
-  text-align: right;
-  
+  display: flex;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: none;
   font-size: 16px;
   font-weight: 700;
   text-transform: uppercase;
+}
+.grand-total-row span:first-child {
+  flex: 0 0 74%; /* matches the combined width of No+Date+Jenis Titipan+Qty columns */
 }

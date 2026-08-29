@@ -667,6 +667,8 @@ input[type="file"] {
   gap: 24px;
   margin-top: 14px;
   padding-top: 14px;
+  padding-right: 6px;
+  min-width: 560px;
   border-top: none;
   font-size: 16px;
   font-weight: 700;

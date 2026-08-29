@@ -338,6 +338,7 @@ input[type="file"] {
   padding-right: 16px;
   font-size: 16px;
   font-weight: 700;
+  text-transform: uppercase;
 }
 .sheet-table tfoot .total-row td.num {
   font-size: 20px;

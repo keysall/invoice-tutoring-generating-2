@@ -336,7 +336,7 @@ document.body.appendChild(clone);
   void clone.offsetHeight;
 
   try {
-    const scale = 2;
+    const scale = 1.5;
     const canvas = await html2canvas(clone, {
       scale,
       backgroundColor: "#ffffff",

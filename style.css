@@ -662,7 +662,7 @@ input[type="file"] {
 .sheet-table-additional th:nth-child(5), .sheet-table-additional td:nth-child(5) { width:18%; }
 
 .grand-total-row {
- /* display:flex; justify-content:space-between;
+ /* display:flex; justify-content:space-between; */
   margin-top:14px; padding-top:14px;
   text-align: right;
 

@@ -1,17 +1,20 @@
-// ============ State ============
+// ============ State: main invoice ============
 const STORAGE_KEY = "invoiceGeneratorState";
 
-// Each item row: date (session date), desc (subject/session tutor), note,
-// price (fee tutor), additionalFee. No per-row subtotal anymore — only a
-// single grand Total Fee at the bottom of the table.
+// Session Details (main table): date, desc (subject), note, price (Fee Tutor),
+// additionalFee (only shown/used when Additional Mode is OFF — see below).
 let items = [
-  { date: "", desc: "Math: Functions", note: "Titipan", price: 100000, additionalFee: 0 },
+  { date: "", desc: "Math: Functions", note: "", price: 100000, additionalFee: 0 },
 ];
 let qrisDataUrl = null;
-let titipanClients = [
-  { name: "Braun", items: [{ date: "", type: "Bloodbathtub", price: 10000, note: "" }] },
-];
 
+// Additional Mode (Titipan) — OFF by default.
+// OFF: main table has 6 columns (...Fee Tutor, Additional Fee), exactly like
+//      the original invoice.
+// ON:  main table shrinks to 5 columns (Additional Fee column removed), and
+//      a separate table + form (additionalItems) appears below it instead.
+let additionalMode = false;
+let additionalItems = [{ date: "", type: "", qty: 1, price: 0 }];
 
 // ============ Helpers ============
 function formatRupiah(n) {
@@ -27,8 +30,7 @@ function formatDateEN(monthStr) {
   return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
 
-// Per-session date (input type="date"). en-GB locale gives "Tuesday, 18 August 2026"
-// (day before month), matching the original design.
+// Per-row date (input type="date"). en-GB locale gives "Tuesday, 18 August 2026".
 function formatSessionDate(dateStr) {
   if (!dateStr) return "—";
   const d = new Date(dateStr + "T00:00:00");
@@ -37,8 +39,14 @@ function formatSessionDate(dateStr) {
 }
 
 function el(id) { return document.getElementById(id); }
+function escapeAttr(str) { return String(str).replace(/"/g, "&quot;"); }
+function escapeHtml(str) {
+  const d = document.createElement("div");
+  d.textContent = str == null ? "" : str;
+  return d.innerHTML;
+}
 
-// ============ Cache (localStorage) ============
+// ============ Cache (localStorage) — everything below is auto-saved ============
 function collectState() {
   return {
     fromName: el("fromName").value,
@@ -50,9 +58,10 @@ function collectState() {
     bankAccount: el("bankAccount").value,
     bankHolder: el("bankHolder").value,
     closingNote: el("closingNote").value,
-    signatureName: el("signatureName").value,
     items: items,
     qrisDataUrl: qrisDataUrl,
+    additionalMode: additionalMode,
+    additionalItems: additionalItems,
   };
 }
 
@@ -78,10 +87,19 @@ function loadState() {
     el("bankAccount").value = state.bankAccount ?? "";
     el("bankHolder").value = state.bankHolder ?? "";
     el("closingNote").value = state.closingNote ?? el("closingNote").value;
-    el("signatureName").value = state.signatureName ?? "";
     if (Array.isArray(state.items) && state.items.length) items = state.items;
     qrisDataUrl = state.qrisDataUrl || null;
     if (qrisDataUrl) el("removeQrisBtn").hidden = false;
+
+    additionalMode = !!state.additionalMode;
+    if (Array.isArray(state.additionalItems) && state.additionalItems.length) {
+      additionalItems = state.additionalItems;
+    }
+    if (el("additionalModeToggle")) el("additionalModeToggle").checked = additionalMode;
+    if (el("additionalItemsList")) el("additionalItemsList").hidden = !additionalMode;
+    if (el("addAdditionalItemBtn")) el("addAdditionalItemBtn").hidden = !additionalMode;
+    if (el("additionalTableWrap")) el("additionalTableWrap").hidden = !additionalMode;
+
     return true;
   } catch (e) {
     console.warn("Failed to load cache:", e);
@@ -94,8 +112,7 @@ function clearState() {
   location.reload();
 }
 
-// ============ Line items (form side) ============
-// Row fields: date | desc (subject) | note | price (fee tutor) | additionalFee
+// ============ Session Details (main table, form side) ============
 function renderItemRows() {
   const list = el("itemsList");
   list.innerHTML = "";
@@ -103,13 +120,13 @@ function renderItemRows() {
     const row = document.createElement("div");
     row.className = "item-row";
     row.innerHTML = `
-  <input class="f-date" type="date" data-idx="${idx}" data-field="date" value="${escapeAttr(item.date || "")}">
-  <input class="f-subject" type="text" data-idx="${idx}" data-field="desc" placeholder="Subject / session tutor" value="${escapeAttr(item.desc)}">
-  <input class="f-note" type="text" data-idx="${idx}" data-field="note" placeholder="Note" value="${escapeAttr(item.note || "")}">
-  <input class="f-price" type="number" min="0" step="1000" data-idx="${idx}" data-field="price" value="${item.price}">
-  <input class="f-fee" type="number" min="0" step="1000" data-idx="${idx}" data-field="additionalFee" value="${item.additionalFee || 0}">
-  <button type="button" class="item-remove" data-idx="${idx}" aria-label="Remove row">✕</button>
-`;
+      <input class="f-date" type="date" data-idx="${idx}" data-field="date" value="${escapeAttr(item.date || "")}">
+      <input class="f-subject" type="text" data-idx="${idx}" data-field="desc" placeholder="Subject / session tutor" value="${escapeAttr(item.desc)}">
+      <input class="f-note" type="text" data-idx="${idx}" data-field="note" placeholder="Note" value="${escapeAttr(item.note || "")}">
+      <input class="f-price" type="number" min="0" step="1000" data-idx="${idx}" data-field="price" value="${item.price}">
+      <input class="f-fee" type="number" min="0" step="1000" data-idx="${idx}" data-field="additionalFee" value="${item.additionalFee || 0}">
+      <button type="button" class="item-remove" data-idx="${idx}" aria-label="Remove row">✕</button>
+    `;
     list.appendChild(row);
   });
 
@@ -132,20 +149,66 @@ function renderItemRows() {
   });
 }
 
-function escapeAttr(str) {
-  return String(str).replace(/"/g, "&quot;");
-}
-function escapeHtml(str) {
-  const d = document.createElement("div");
-  d.textContent = str == null ? "" : str;
-  return d.innerHTML;
-}
-
 el("addItemBtn").addEventListener("click", () => {
   items.push({ date: "", desc: "", note: "", price: 0, additionalFee: 0 });
   renderItemRows();
   renderPreview();
 });
+
+// ============ Additional Mode (Titipan) — separate table, form side ============
+function renderAdditionalItemRows() {
+  const list = el("additionalItemsList");
+  if (!list) return;
+  list.innerHTML = "";
+  additionalItems.forEach((item, idx) => {
+    const row = document.createElement("div");
+    row.className = "item-row item-row-titipan";
+    row.innerHTML = `
+      <input class="f-type" type="text" data-idx="${idx}" data-field="type" placeholder="Jenis titipan" value="${escapeAttr(item.type || "")}">
+      <input class="f-date" type="date" data-idx="${idx}" data-field="date" value="${escapeAttr(item.date || "")}">
+      <input class="f-qty" type="number" min="0" step="1" data-idx="${idx}" data-field="qty" value="${item.qty || 0}">
+      <input class="f-price" type="number" min="0" step="1000" data-idx="${idx}" data-field="price" value="${item.price || 0}">
+      <button type="button" class="item-remove" data-idx="${idx}" aria-label="Remove row">✕</button>
+    `;
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll("input").forEach((input) => {
+    input.addEventListener("input", (e) => {
+      const idx = Number(e.target.dataset.idx);
+      const field = e.target.dataset.field;
+      const isText = field === "type" || field === "date";
+      additionalItems[idx][field] = isText ? e.target.value : Number(e.target.value);
+      renderPreview();
+    });
+  });
+  list.querySelectorAll(".item-remove").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const idx = Number(e.currentTarget.dataset.idx);
+      additionalItems.splice(idx, 1);
+      renderAdditionalItemRows();
+      renderPreview();
+    });
+  });
+}
+
+if (el("addAdditionalItemBtn")) {
+  el("addAdditionalItemBtn").addEventListener("click", () => {
+    additionalItems.push({ date: "", type: "", qty: 1, price: 0 });
+    renderAdditionalItemRows();
+    renderPreview();
+  });
+}
+
+if (el("additionalModeToggle")) {
+  el("additionalModeToggle").addEventListener("change", (e) => {
+    additionalMode = e.target.checked;
+    if (el("additionalItemsList")) el("additionalItemsList").hidden = !additionalMode;
+    if (el("addAdditionalItemBtn")) el("addAdditionalItemBtn").hidden = !additionalMode;
+    if (el("additionalTableWrap")) el("additionalTableWrap").hidden = !additionalMode;
+    renderPreview();
+  });
+}
 
 // ============ QRIS upload ============
 el("qrisUpload").addEventListener("change", (e) => {
@@ -166,7 +229,46 @@ el("removeQrisBtn").addEventListener("click", () => {
   renderPreview();
 });
 
+// ============ Main table skeleton (builds INSIDE #mainTableWrap) ============
+// Column count depends on Additional Mode: 6 columns normally (...Fee Tutor,
+// Additional Fee), 5 when Additional Mode is on (Additional Fee column
+// removed — that fee type lives entirely in the separate table instead).
+function renderMainTable() {
+  const wrap = el("mainTableWrap");
+  if (!wrap) return;
 
+  if (!additionalMode) {
+    wrap.innerHTML = `
+      <table class="sheet-table">
+        <thead>
+          <tr>
+            <th>No</th><th>Date</th><th>Subject / Session Tutor</th><th>Note</th>
+            <th class="num">Fee Tutor</th><th class="num">Additional Fee</th>
+          </tr>
+        </thead>
+        <tbody id="prevItemsBody"></tbody>
+        <tfoot>
+          <tr class="total-row"><td colspan="5">Total Fee</td><td class="num" id="prevTotal">Rp0</td></tr>
+        </tfoot>
+      </table>
+    `;
+  } else {
+    wrap.innerHTML = `
+      <table class="sheet-table">
+        <thead>
+          <tr>
+            <th>No</th><th>Date</th><th>Subject / Session Tutor</th><th>Note</th>
+            <th class="num">Fee Tutor</th>
+          </tr>
+        </thead>
+        <tbody id="prevItemsBody"></tbody>
+        <tfoot>
+          <tr class="total-row"><td colspan="4">Total Fee</td><td class="num" id="prevTotal">Rp0</td></tr>
+        </tfoot>
+      </table>
+    `;
+  }
+}
 
 // ============ Preview render ============
 function renderPreview() {
@@ -177,26 +279,60 @@ function renderPreview() {
     : "—";
   el("prevDate").textContent = formatDateEN(el("invoiceDate").value);
 
-  // items — table: No | Date | Subject | Note | Fee Tutor | Additional Fee
+  // Main table: rebuild skeleton first (column count may have changed),
+  // then fill in rows.
+  renderMainTable();
   const body = el("prevItemsBody");
-  body.innerHTML = "";
-
   let total = 0;
   items.forEach((item, i) => {
-    total += (Number(item.price) || 0) + (Number(item.additionalFee) || 0);
+    total += Number(item.price) || 0;
+    if (!additionalMode) total += Number(item.additionalFee) || 0;
+
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${i + 1}</td>
-      <td>${formatSessionDate(item.date)}</td>
-      <td>${escapeHtml(item.desc) || "—"}</td>
-      <td>${escapeHtml(item.note) || "—"}</td>
-      <td class="num">${formatRupiah(item.price)}</td>
-      <td class="num">${formatRupiah(item.additionalFee || 0)}</td>
-    `;
+    tr.innerHTML = additionalMode
+      ? `
+        <td>${i + 1}</td>
+        <td>${formatSessionDate(item.date)}</td>
+        <td>${escapeHtml(item.desc) || "—"}</td>
+        <td>${escapeHtml(item.note) || "—"}</td>
+        <td class="num">${formatRupiah(item.price)}</td>
+      `
+      : `
+        <td>${i + 1}</td>
+        <td>${formatSessionDate(item.date)}</td>
+        <td>${escapeHtml(item.desc) || "—"}</td>
+        <td>${escapeHtml(item.note) || "—"}</td>
+        <td class="num">${formatRupiah(item.price)}</td>
+        <td class="num">${formatRupiah(item.additionalFee || 0)}</td>
+      `;
     body.appendChild(tr);
   });
-
   el("prevTotal").textContent = formatRupiah(total);
+
+  // Additional Mode table — only filled when the toggle is on.
+  if (additionalMode) {
+    const addBody = el("prevAdditionalBody");
+    let addTotal = 0;
+    if (addBody) {
+      addBody.innerHTML = "";
+      additionalItems.forEach((item, i) => {
+        const qty = Number(item.qty) || 0;
+        const price = Number(item.price) || 0;
+        addTotal += qty * price;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${i + 1}</td>
+          <td>${formatSessionDate(item.date)}</td>
+          <td>${escapeHtml(item.type) || "—"}</td>
+          <td class="num">${qty}</td>
+          <td class="num">${formatRupiah(price)}</td>
+        `;
+        addBody.appendChild(tr);
+      });
+    }
+    if (el("prevAdditionalTotal")) el("prevAdditionalTotal").textContent = formatRupiah(addTotal);
+    if (el("prevGrandTotal")) el("prevGrandTotal").textContent = formatRupiah(total + addTotal);
+  }
 
   // payment
   const bank = el("bankName").value;
@@ -209,7 +345,7 @@ function renderPreview() {
   const hasBank = bank || bankAcc || bankHolder;
 
   if (!hasQris && !hasBank) {
-    optionsWrap.innerHTML = `<div class="payment-empty">No payment method has been added yet.</div>`;
+    optionsWrap.innerHTML = `<div class="payment-empty">No payment method added yet T__T.</div>`;
   } else {
     if (hasQris) {
       const block = document.createElement("div");
@@ -229,7 +365,7 @@ function renderPreview() {
       block.innerHTML = `
         <div class="payment-text">
           <div class="payment-title">Bank Transfer</div>
-          <span class="payment-bank-line">${escapeHtml(bank)} ${escapeHtml(bankAcc)}</span><br>
+          ${escapeHtml(bank)} ${escapeHtml(bankAcc)}<br>
           Account holder: ${escapeHtml(bankHolder)}
         </div>
       `;
@@ -240,7 +376,7 @@ function renderPreview() {
   // footer
   el("prevClosingNote").textContent = el("closingNote").value || "—";
   el("prevContact").textContent = el("fromContact").value || "";
-  el("prevSignature").textContent = el("signatureName").value || "—";
+  el("prevSignature").textContent = el("fromName").value || "—";
 
   saveState();
 }
@@ -248,7 +384,7 @@ function renderPreview() {
 // ============ Wire up live inputs ============
 [
   "fromName", "fromContact", "clientName", "invoiceNumber", "invoiceDate",
-  "bankName", "bankAccount", "bankHolder", "closingNote", "signatureName",
+  "bankName", "bankAccount", "bankHolder", "closingNote",
 ].forEach((id) => {
   el(id).addEventListener("input", renderPreview);
 });
@@ -263,154 +399,6 @@ el("clearCacheBtn").addEventListener("click", () => {
   if (confirm("Delete all data saved from this browser?")) clearState();
 });
 
-// ============ PDF export ============
-// Always exports on real A4 paper size. If the invoice content is taller
-// than one A4 page (e.g. ~10+ session rows), it automatically continues
-// onto page 2, 3, etc. — text stays full-size, it never shrinks to fit.
-//
-// To avoid any issue with mobile scroll position / narrow viewport, we
-// build an OFF-SCREEN CLONE of the invoice at a fixed desktop-like width
-// and capture that instead of the visible (possibly scrolled/narrow) sheet.
-function getPageBreakpoints(sheetEl, scale) {
-  const sheetTop = sheetEl.getBoundingClientRect().top;
-  const points = new Set([0]);
-
-  Array.from(sheetEl.children).forEach((child) => {
-    const rect = child.getBoundingClientRect();
-    points.add(Math.round((rect.top - sheetTop) * scale));
-    points.add(Math.round((rect.bottom - sheetTop) * scale));
-  });
-
-  const tbody = sheetEl.querySelector("#prevItemsBody");
-  if (tbody) {
-    Array.from(tbody.children).forEach((tr) => {
-      const rect = tr.getBoundingClientRect();
-      points.add(Math.round((rect.top - sheetTop) * scale));
-      points.add(Math.round((rect.bottom - sheetTop) * scale));
-    });
-  }
-
-  points.add(Math.round(sheetEl.scrollHeight * scale));
-  return Array.from(points).sort((a, b) => a - b);
-}
-
-el("downloadBtn").addEventListener("click", async () => {
-  const btn = el("downloadBtn");
-  const originalLabel = btn.innerHTML;
-  btn.disabled = true;
-  btn.innerHTML = "Preparing PDF...";
-
-  // --- Build an off-screen clone at a fixed width ---
-  const original = el("invoiceSheet");
-  const clone = original.cloneNode(true);
-  clone.id = "invoiceSheetExportClone";
-  clone.style.position = "fixed";
-  clone.style.top = "0";
-  clone.style.left = "-10000px";
-  clone.style.width = "800px";
-  clone.style.margin = "0";
-  clone.style.zIndex = "-1";
-
-  // Inside the clone, remove the mobile scroll restriction entirely —
-  // it doesn't need to scroll, it just needs to show everything.
-  const cloneScrollWrap = clone.querySelector(".table-scroll");
-  const cloneTable = clone.querySelector(".sheet-table");
-  if (cloneScrollWrap) cloneScrollWrap.style.overflow = "visible";
-if (cloneTable) cloneTable.style.minWidth = "0";
-
-// Force "desktop" appearance on the clone no matter how narrow the phone's
-// actual screen is — media queries check the real browser viewport, not
-// this clone's own width, so without this the mobile @media rules still
-// sneak in and wreck the layout (stacked title/date, left-aligned footer).
-const cloneHead = clone.querySelector(".sheet-head");
-const cloneTitle = clone.querySelector(".sheet-title");
-const cloneMeta = clone.querySelector(".sheet-meta");
-const cloneFooter = clone.querySelector(".sheet-footer");
-const cloneFooterNote = clone.querySelector(".footer-note");
-const cloneFooterSign = clone.querySelector(".footer-sign");
-
-clone.style.padding = "16px";
-if (cloneHead) { cloneHead.style.flexDirection = "row"; cloneHead.style.alignItems = "flex-start"; cloneHead.style.gap = "0"; }
-if (cloneTitle) cloneTitle.style.fontSize = "44px";
-if (cloneMeta) cloneMeta.style.textAlign = "right";
-if (cloneFooter) { cloneFooter.style.flexDirection = "row"; cloneFooter.style.alignItems = "flex-end"; cloneFooter.style.gap = "24px"; }
-if (cloneFooterNote) cloneFooterNote.style.maxWidth = "60%";
-if (cloneFooterSign) cloneFooterSign.style.textAlign = "right";
-
-document.body.appendChild(clone);
-  // Force layout to settle before measuring/capturing.
-  void clone.offsetHeight;
-
-  try {
-    const scale = 1.5;
-    const canvas = await html2canvas(clone, {
-      scale,
-      backgroundColor: "#ffffff",
-    });
-
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ unit: "mm", format: "a4" });
-
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 15;
-    const contentWidth = pageWidth - margin * 2;
-    const contentHeight = pageHeight - margin * 2;
-
-    const pxToMm = contentWidth / canvas.width;
-    const scaledHeightMm = canvas.height * pxToMm;
-
-    // ngecelin ukuran ya JANGAN DIHAPUS
-    if (scaledHeightMm <= contentHeight) {
-      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, contentWidth, scaledHeightMm);
-    } else {
-    
-      const pageHeightPx = contentHeight / pxToMm;
-      const breakpoints = getPageBreakpoints(clone, scale);
-      let renderedPx = 0;
-      let pageIndex = 0;
-
-      while (renderedPx < canvas.height) {
-        const hardLimit = Math.min(renderedPx + pageHeightPx, canvas.height);
-        let cut = hardLimit;
-        for (let i = breakpoints.length - 1; i >= 0; i--) {
-          if (breakpoints[i] <= hardLimit && breakpoints[i] > renderedPx) {
-            cut = breakpoints[i];
-            break;
-          }
-        }
-        const sliceHeightPx = cut - renderedPx;
-
-        const pageCanvas = document.createElement("canvas");
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = sliceHeightPx;
-        pageCanvas.getContext("2d").drawImage(
-          canvas,
-          0, renderedPx, canvas.width, sliceHeightPx,
-          0, 0, canvas.width, sliceHeightPx
-        );
-
-        // BUAT NGECELIN UKURAN PDF JGN DIHAPUS!!!
-        if (pageIndex > 0) pdf.addPage();
-        pdf.addImage(pageCanvas.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, contentWidth, sliceHeightPx * pxToMm);
-        
-        renderedPx = cut;
-        pageIndex++;
-      }
-    }
-
-    const fileName = (el("invoiceNumber").value || "invoice").replace(/[^\w-]+/g, "_");
-    pdf.save(`${fileName}.pdf`);
-  } catch (err) {
-    console.error(err);
-    alert("Failed to make PDF. Please try again.");
-  } finally {
-    document.body.removeChild(clone);
-    btn.disabled = false;
-    btn.innerHTML = originalLabel;
-  }
-});
-
 // ============ TABS ============
 document.querySelectorAll(".tab-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -421,7 +409,7 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
   });
 });
 
-// ============ TAB 2: kalkulatorrrr titipan ============
+// ============ TAB 2: Kalkulator Titipan (independent feature, own cache) ============
 const TITIPAN_STORAGE_KEY = "titipanCalculatorState";
 
 let titipanClients = [
@@ -475,9 +463,7 @@ function renderTitipan() {
     block.innerHTML = `
       <div class="client-block-head">
         <input type="text" class="client-name-input" data-c="${cIdx}" placeholder="Student name" value="${escapeAttr(client.name || "")}">
-        <button type="button" class="btn-ghost btn-sm remove-client-btn" data-c="${cIdx}">
-          <i class="ti ti-trash" aria-hidden="true"></i> Remove student
-        </button>
+        <button type="button" class="btn-ghost btn-sm remove-client-btn" data-c="${cIdx}">🗑 Remove student</button>
       </div>
       <table class="titipan-table">
         <thead>
@@ -488,14 +474,12 @@ function renderTitipan() {
           <tr><td colspan="3">Total</td><td class="num">${formatRupiah(total)}</td><td colspan="2"></td></tr>
         </tfoot>
       </table>
-      <button type="button" class="btn-ghost btn-sm add-titipan-row-btn" data-c="${cIdx}">
-        <i class="ti ti-plus" aria-hidden="true"></i> Add item
-      </button>
+      <button type="button" class="btn-ghost btn-sm add-titipan-row-btn" data-c="${cIdx}">+ Add item</button>
     `;
     wrap.appendChild(block);
   });
 
-  // client name inputs
+  // Client name: update data only, no re-render (keeps focus while typing).
   wrap.querySelectorAll(".client-name-input").forEach((input) => {
     input.addEventListener("input", (e) => {
       titipanClients[Number(e.target.dataset.c)].name = e.target.value;
@@ -503,11 +487,8 @@ function renderTitipan() {
     });
   });
 
-  // item field inputs — update data only, DON'T call renderTitipan() here.
-  // Re-rendering on every keystroke rebuilds every <input> in the table,
-  // which kicks focus out of the box you're typing in. We only touch the
-  // Total number directly (via DOM), since that's the only visible thing
-  // that needs to change while typing.
+  // Item fields: update data + total number only. NEVER call renderTitipan()
+  // here — that rebuilds every <input>, kicking focus out on every keystroke.
   wrap.querySelectorAll("tbody input").forEach((input) => {
     input.addEventListener("input", (e) => {
       const c = Number(e.target.dataset.c);
@@ -516,7 +497,7 @@ function renderTitipan() {
       const isText = field === "date" || field === "type" || field === "note";
       titipanClients[c].items[i][field] = isText ? e.target.value : Number(e.target.value);
 
-      const total = titipanClients[c].items.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+      const total = titipanClients[c].items.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
       const totalCell = wrap.children[c].querySelector("tfoot td.num");
       if (totalCell) totalCell.textContent = formatRupiah(total);
 
@@ -524,7 +505,7 @@ function renderTitipan() {
     });
   });
 
-  // add row per client
+  // Click-once buttons: full re-render is fine (no focus to preserve).
   wrap.querySelectorAll(".add-titipan-row-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const c = Number(e.currentTarget.dataset.c);
@@ -533,7 +514,6 @@ function renderTitipan() {
     });
   });
 
-  // remove row
   wrap.querySelectorAll(".remove-titipan-row-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const c = Number(e.currentTarget.dataset.c);
@@ -546,7 +526,6 @@ function renderTitipan() {
     });
   });
 
-  // remove whole student block
   wrap.querySelectorAll(".remove-client-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const c = Number(e.currentTarget.dataset.c);
@@ -570,7 +549,154 @@ if (el("addClientBtn")) {
 
 loadTitipanState();
 
+// ============ PDF export ============
+// Real A4 paper size. If content is taller than one page, it auto-continues
+// onto page 2, 3, etc. — text stays full-size, it never shrinks to fit.
+//
+// Builds an OFF-SCREEN CLONE of the invoice at a fixed desktop-like width
+// before capturing, so mobile viewport width / scroll position never
+// affects the exported result, and forces "desktop" layout on the clone
+// (mobile @media rules check the real screen, not the clone's own width).
+function getPageBreakpoints(sheetEl, scale) {
+  const sheetTop = sheetEl.getBoundingClientRect().top;
+  const points = new Set([0]);
+
+  Array.from(sheetEl.children).forEach((child) => {
+    const rect = child.getBoundingClientRect();
+    points.add(Math.round((rect.top - sheetTop) * scale));
+    points.add(Math.round((rect.bottom - sheetTop) * scale));
+  });
+
+  // Row-level breaks inside both tables, so a page break never lands mid-row.
+  sheetEl.querySelectorAll("tbody tr").forEach((tr) => {
+    const rect = tr.getBoundingClientRect();
+    points.add(Math.round((rect.top - sheetTop) * scale));
+    points.add(Math.round((rect.bottom - sheetTop) * scale));
+  });
+
+  points.add(Math.round(sheetEl.scrollHeight * scale));
+  return Array.from(points).sort((a, b) => a - b);
+}
+
+async function captureInvoiceCanvas() {
+  const original = el("invoiceSheet");
+  const clone = original.cloneNode(true);
+  clone.id = "invoiceSheetExportClone";
+  clone.style.position = "fixed";
+  clone.style.top = "0";
+  clone.style.left = "-10000px";
+  clone.style.width = "800px";
+  clone.style.margin = "0";
+  clone.style.zIndex = "-1";
+  clone.style.padding = "40px";
+
+  clone.querySelectorAll(".table-scroll").forEach((w) => { w.style.overflow = "visible"; });
+  clone.querySelectorAll(".sheet-table").forEach((t) => { t.style.minWidth = "0"; });
+
+  // Force desktop appearance regardless of the phone's real screen width.
+  const cloneHead = clone.querySelector(".sheet-head");
+  const cloneTitle = clone.querySelector(".sheet-title");
+  const cloneMeta = clone.querySelector(".sheet-meta");
+  const cloneFooter = clone.querySelector(".sheet-footer");
+  const cloneFooterNote = clone.querySelector(".footer-note");
+  const cloneFooterSign = clone.querySelector(".footer-sign");
+  if (cloneHead) { cloneHead.style.flexDirection = "row"; cloneHead.style.alignItems = "flex-start"; cloneHead.style.gap = "0"; }
+  if (cloneTitle) cloneTitle.style.fontSize = "44px";
+  if (cloneMeta) cloneMeta.style.textAlign = "right";
+  if (cloneFooter) { cloneFooter.style.flexDirection = "row"; cloneFooter.style.alignItems = "flex-end"; cloneFooter.style.gap = "24px"; }
+  if (cloneFooterNote) cloneFooterNote.style.maxWidth = "60%";
+  if (cloneFooterSign) cloneFooterSign.style.textAlign = "right";
+
+  // Additional Mode table: match whatever state the live page is in.
+  const cloneAdditionalWrap = clone.querySelector("#additionalTableWrap");
+  if (cloneAdditionalWrap) cloneAdditionalWrap.hidden = !additionalMode;
+
+  document.body.appendChild(clone);
+  void clone.offsetHeight; // force layout to settle
+
+  try {
+    const canvas = await html2canvas(clone, { scale: 2, backgroundColor: "#ffffff" });
+    // Breakpoints MUST be measured from this same clone (not the live,
+    // possibly-mobile-layout sheet) — row heights differ between the two.
+    const breakpoints = getPageBreakpoints(clone, 2);
+    return { canvas, breakpoints };
+  } finally {
+    document.body.removeChild(clone);
+  }
+}
+
+function getExportFileName() {
+  return (el("invoiceNumber").value || "invoice").replace(/[^\w-]+/g, "_");
+}
+
+el("downloadBtn").addEventListener("click", async () => {
+  const btn = el("downloadBtn");
+  const originalLabel = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = "Preparing PDF...";
+
+  try {
+    const { canvas, breakpoints } = await captureInvoiceCanvas();
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit: "mm", format: "a4" });
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 15;
+    const contentWidth = pageWidth - margin * 2;
+    const contentHeight = pageHeight - margin * 2;
+
+    const pxToMm = contentWidth / canvas.width;
+    const scaledHeightMm = canvas.height * pxToMm;
+
+    if (scaledHeightMm <= contentHeight) {
+      pdf.addImage(canvas.toDataURL("image/png"), "PNG", margin, margin, contentWidth, scaledHeightMm);
+    } else {
+      const pageHeightPx = contentHeight / pxToMm;
+      let renderedPx = 0;
+      let pageIndex = 0;
+
+      while (renderedPx < canvas.height) {
+        const hardLimit = Math.min(renderedPx + pageHeightPx, canvas.height);
+        let cut = hardLimit;
+        for (let i = breakpoints.length - 1; i >= 0; i--) {
+          if (breakpoints[i] <= hardLimit && breakpoints[i] > renderedPx) {
+            cut = breakpoints[i];
+            break;
+          }
+        }
+        const sliceHeightPx = cut - renderedPx;
+
+        const pageCanvas = document.createElement("canvas");
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sliceHeightPx;
+        pageCanvas.getContext("2d").drawImage(
+          canvas,
+          0, renderedPx, canvas.width, sliceHeightPx,
+          0, 0, canvas.width, sliceHeightPx
+        );
+
+        if (pageIndex > 0) pdf.addPage();
+        pdf.addImage(pageCanvas.toDataURL("image/png"), "PNG", margin, margin, contentWidth, sliceHeightPx * pxToMm);
+
+        renderedPx = cut;
+        pageIndex++;
+      }
+    }
+
+    pdf.save(`${getExportFileName()}.pdf`);
+  } catch (err) {
+    console.error(err);
+    alert("Failed to make PDF. Please try again.");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalLabel;
+  }
+});
+
 // ============ Init ============
 renderItemRows();
+renderAdditionalItemRows();
 renderPreview();
 renderTitipan();

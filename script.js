@@ -336,7 +336,7 @@ document.body.appendChild(clone);
   void clone.offsetHeight;
 
   try {
-    const scale = 2;
+    const scale = 1.5;
     const canvas = await html2canvas(clone, {
       scale,
       backgroundColor: "#ffffff",
@@ -354,9 +354,11 @@ document.body.appendChild(clone);
     const pxToMm = contentWidth / canvas.width;
     const scaledHeightMm = canvas.height * pxToMm;
 
+    // kecilin ukuran pdf
     if (scaledHeightMm <= contentHeight) {
-      pdf.addImage(canvas.toDataURL("image/png"), "PNG", margin, margin, contentWidth, scaledHeightMm);
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, contentWidth, scaledHeightMm);
     } else {
+    
       const pageHeightPx = contentHeight / pxToMm;
       const breakpoints = getPageBreakpoints(clone, scale);
       let renderedPx = 0;
@@ -382,9 +384,10 @@ document.body.appendChild(clone);
           0, 0, canvas.width, sliceHeightPx
         );
 
+        // ini masuk ke kecilin pdf
         if (pageIndex > 0) pdf.addPage();
-        pdf.addImage(pageCanvas.toDataURL("image/png"), "PNG", margin, margin, contentWidth, sliceHeightPx * pxToMm);
-
+        pdf.addImage(pageCanvas.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, contentWidth, sliceHeightPx * pxToMm);
+        
         renderedPx = cut;
         pageIndex++;
       }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Invoice Generator — Your Name</title>
+<title>Invoice Generator — Your Name please <3</title>
 <meta name="description" content="simple invoice generator for tutoring sessions ˖ ݁♬⋆.˚𝄞">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,11 +35,11 @@
       <h2 class="group-title">1. From</h2>
       <label class="field">
         <span>Your name</span>
-        <input type="text" id="fromName" placeholder="Your name <3" value="Xu Yiyang">
+        <input type="text" id="fromName" placeholder="Xu Yiyang" value="Xu Yiyang">
       </label>
       <label class="field">
         <span>Contact (email / WhatsApp)</span>
-        <input type="text" id="fromContact" placeholder="@gmail.com or WA 08xx">
+        <input type="text" id="fromContact" placeholder="@gmail.com || WA 08xx">
       </label>
     </div>
 
@@ -52,7 +52,7 @@
       <div class="field-row">
         <label class="field">
           <span>Invoice number</span>
-          <input type="text" id="invoiceNumber" placeholder="Client's Name-012/2026">
+          <input type="text" id="invoiceNumber" placeholder="Client-012/2026">
         </label>
         <!-- Invoice date = monthly billing period, NOT a single day. Input type="month" on purpose. -->
         <label class="field">
@@ -62,14 +62,37 @@
       </div>
     </div>
 
-    <!-- Each item row now matches the original table design: No / Date / Subject / Note / Fee Tutor / Additional Fee.
-         Row markup itself is generated in script.js (renderItemRows) — this div is just the container. -->
+    <!-- Main session table. Row markup generated in script.js (renderItemRows). -->
     <div class="field-group">
       <div class="group-header-row">
         <h2 class="group-title">3. Session Details</h2>
         <button type="button" class="btn-ghost btn-sm" id="addItemBtn">+ Add row</button>
-    
+      </div>
       <div id="itemsList" class="items-list"></div>
+    </div>
+
+    <!-- Additional Mode: OFF by default.
+         When turned ON:
+           - This extra form appears (separate list: date, jenis titipan, qty, harga)
+           - A second table appears in the preview, below the main table
+           - The main table's "Additional Fee" column disappears (that fee type now
+             lives entirely in this separate table instead) — handled in script.js
+             by renderMainTable(), which rebuilds the main table with 5 or 6 columns
+             depending on this toggle.
+         When turned OFF: everything above reverts, main table goes back to 6 columns. -->
+    <div class="field-group">
+      <div class="group-header-row">
+        <h2 class="group-title">Additional Fee (Titipan)</h2>
+        <label class="switch-row" style="margin:0;">
+          <span>Enable</span>
+          <span class="switch">
+            <input type="checkbox" id="additionalModeToggle">
+            <span class="switch-slider"></span>
+          </span>
+        </label>
+      </div>
+      <div id="additionalItemsList" class="items-list" hidden></div>
+      <button type="button" class="btn-ghost btn-sm" id="addAdditionalItemBtn" hidden>+ Add row</button>
     </div>
 
     <div class="field-group">
@@ -99,15 +122,11 @@
         <span>Short message ^_^</span>
         <textarea id="closingNote" rows="2">Thank you! If there are any issues, please contact me through.</textarea>
       </label>
-      <label class="field">
-        <span>Signature name</span>
-        <input type="text" id="signatureName" placeholder="Your name ^^">
-      </label>
     </div>
 
     <button type="button" class="btn-primary" id="downloadBtn">Download as PDF</button>
-    <p class="hint-text">All data is processed &amp; auto-saved in your own browser 𝄞⨾𓍢ִ໋</p>
-    <button type="button" class="btn-ghost btn-sm" id="clearCacheBtn" style="margin:8px auto 0; display:flex;">Clear saved data</button>
+    <p class="hint-text">All data is processed &amp; auto-saved in your own browser (˶ᵔ ᵕ ᵔ˶)</p>
+    <button type="button" class="btn-ghost btn-sm" id="clearCacheBtn" style="margin:8px auto 0; display:flex;">🗑 Clear saved data</button>
   </section>
 
   <!-- ============ PREVIEW PANEL ============ -->
@@ -131,36 +150,42 @@
           <div><span class="label-muted">From</span> <span id="prevFromName">—</span></div>
         </div>
 
-        <!-- .table-scroll = mobile-friendly wrapper. On narrow screens the table keeps a
-             minimum width and scrolls sideways INSIDE this box, instead of squishing every
-             column until the text is unreadable. See .table-scroll + its media query in
-             style.css. Do not remove this wrapper div. -->
-        <div class="table-scroll">
-          <table class="sheet-table">
+        <!-- Main table lives entirely INSIDE this empty wrapper — script.js
+             (renderMainTable) builds/rebuilds the <table> here every time
+             Additional Mode is toggled, so the column count can change.
+             Do not hand-write a <table> here; it will just get overwritten. -->
+        <div class="table-scroll" id="mainTableWrap"></div>
+
+        <!-- Additional Mode table: hidden unless the toggle in the form is on. -->
+        <div class="table-scroll" id="additionalTableWrap" hidden>
+          <table class="sheet-table sheet-table-additional">
             <thead>
               <tr>
                 <th>No</th>
                 <th>Date</th>
-                <th>Subject / Session Tutor</th>
-                <th>Note</th>
-                <th class="num">Fee Tutor</th>
-                <th class="num">Additional Fee</th>
+                <th>Jenis Titipan</th>
+                <th class="num">Qty</th>
+                <th class="num">Harga</th>
               </tr>
             </thead>
-            <tbody id="prevItemsBody"></tbody>
+            <tbody id="prevAdditionalBody"></tbody>
             <tfoot>
               <tr class="total-row">
-                <td colspan="5">Total Fee</td>
-                <td class="num" id="prevTotal">Rp0</td>
+                <td colspan="4">Total Additional</td>
+                <td class="num" id="prevAdditionalTotal">Rp0</td>
               </tr>
             </tfoot>
           </table>
+          <div class="grand-total-row">
+            <span>Grand Total</span>
+            <span id="prevGrandTotal">Rp0</span>
+          </div>
         </div>
 
         <div class="sheet-payment" id="sheetPayment">
           <div class="section-label">Payment Method</div>
           <div class="payment-options" id="paymentOptions">
-            <div class="payment-empty" id="paymentEmpty">No payment method added yet T__T</div>
+            <div class="payment-empty" id="paymentEmpty">No payment method added yet T__T.</div>
           </div>
         </div>
 
@@ -182,31 +207,27 @@
 </main>
 </div>
 
-<!-- ============ TAB 2: STUDENT DEPOSIT CALCULATOR ============ -->
+<!-- ============ TAB 2: KALKULATOR TITIPAN ============ -->
 <div id="tab-titipan" class="tab-panel">
   <div class="titipan-wrap">
     <div class="titipan-header">
       <div>
         <h1 class="titipan-title">Kalkulator titipan</h1>
-        <p class="titipan-subtitle">klo mau ngitung totalan pake ini dulu buat sementara gpp, gabakal ilang walau direfresh koq. selagi gak hapus cache browser yak</p>
+        <p class="titipan-subtitle">Track items purchased on behalf of each student, with an automatic running total.</p>
       </div>
       <button type="button" class="btn-primary" id="addClientBtn" style="width:auto;">+ Add Student</button>
     </div>
     <div id="clientBlocks" class="client-blocks"></div>
   </div>
 </div>
-</div>
 
-  
 <footer class="site-footer">
   <p>klo ada masalah chat tele ya <a href="https://t.me/censhie" target="_blank" rel="noopener">@censhie</a> jgn spam!</p>
-  <p>𝄞⋆ ݁♪ . this site is currently under development by orang ✮⋆˙</p>
+  <p>𝄞⋆ ݁♪ . this site is currently under development by keysa ✮⋆˙</p>
 </footer>
 
-  
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="script.js"></script>
+<script src="script.js?v=5"></script>
 </body>
 </html>

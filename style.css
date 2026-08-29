@@ -293,7 +293,7 @@ input[type="file"] {
   min-width: 560px; /* keeps columns readable; triggers .table-scroll on phones */
   table-layout: fixed;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 16px;
   margin-bottom: 8px;
 }
 .sheet-table th {

@@ -386,6 +386,7 @@ input[type="file"] {
 }
 .payment-text { font-size: 13px; line-height: 1.6; }
 .payment-text .payment-title { color: var(--ink-soft); font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 2px; }
+.payment-bank-line { font-size: 16px; font-weight: 700; }
 
 .sheet-footer {
   display: flex;

@@ -298,8 +298,8 @@ input[type="file"] {
 }
 .sheet-table th {
   text-align: left;
-  font-weight: 600;
-  color: var(--ink-soft);
+  font-weight: 700;
+  color: var(--ink);
   font-size: 16px;
   text-transform: uppercase;
   letter-spacing: 0.02em;

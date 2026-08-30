@@ -674,3 +674,77 @@ input[type="file"] {
   font-weight: 700;
   text-transform: uppercase;
 }
+
+.tracker-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.tracker-table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--ink-soft);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 0 6px 8px;
+  border-bottom: 1.5px solid var(--ink);
+}
+.tracker-table th.num { text-align: right; }
+.tracker-table td {
+  padding: 6px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.tracker-table td.num { text-align: right; }
+.tracker-table input[type="text"],
+.tracker-table input[type="date"],
+.tracker-table input[type="number"] {
+  font-size: 13px;
+  padding: 6px 8px;
+}
+.tracker-table tfoot td {
+  border-bottom: none;
+  border-top: 1.5px solid var(--ink);
+  font-weight: 600;
+  padding-top: 10px;
+}
+
+@media (max-width: 640px) {
+  .tracker-table thead { display: none; }
+  .tracker-table, .tracker-table tbody, .tracker-table tr, .tracker-table td {
+    display: block;
+    width: 100%;
+  }
+  .tracker-table tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .tracker-table td { border-bottom: none; padding: 0; }
+  .tracker-table td:nth-child(1) { flex: 0 0 20px; order: 1; }
+  .tracker-table td:nth-child(2) { flex: 1 1 45%; order: 2; }
+  .tracker-table td:nth-child(5) { flex: 1 1 40%; order: 3; }
+  .tracker-table td:nth-child(3) { flex: 1 1 100%; order: 4; }
+  .tracker-table td:nth-child(4) { flex: 1 1 100%; order: 5; }
+  .tracker-table td:nth-child(6) { flex: 0 0 auto; order: 6; margin-left: auto; }
+  .tracker-table input { width: 100%; }
+  .tracker-table td:nth-child(2)::before { content: "Date"; }
+  .tracker-table td:nth-child(3)::before { content: "Subject"; }
+  .tracker-table td:nth-child(4)::before { content: "Note"; }
+  .tracker-table td:nth-child(5)::before { content: "Fee Tutor"; }
+  .tracker-table td::before {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--ink-faint);
+    margin-bottom: 3px;
+  }
+  .tracker-table tfoot tr { flex-wrap: nowrap; justify-content: space-between; border-bottom: none; }
+  .tracker-table tfoot td::before { content: none !important; }
+}

@@ -859,7 +859,8 @@ loadTrackerState();
 
 // ============ Init ============
 renderItemRows();
+renderAdditionalItemRows();
 renderPreview();
 renderTitipan();
-renderAdditionalItemRows();
+
 renderSessionTracker();

@@ -746,7 +746,7 @@ function renderSessionTracker() {
     block.innerHTML = `
       <div class="client-block-head">
         <input type="text" class="client-name-input" data-c="${cIdx}" placeholder="Student name" value="${escapeAttr(client.name || "")}">
-        <button type="button" class="btn-ghost btn-sm remove-tracker-client-btn" data-c="${cIdx}">🗑 Remove student</button>
+        <button type="button" class="btn-ghost btn-sm remove-tracker-client-btn" data-c="${cIdx}">Remove student</button>
       </div>
       <table class="tracker-table">
         <thead>

@@ -691,9 +691,175 @@ if (el("addClientBtn")) {
 
 loadTitipanState();
 
+// ============ TAB 3: Session Tracker — logs sessions per student, then
+// sends one student's sessions into the main Invoice table (overwriting it). ============
+const TRACKER_STORAGE_KEY = "sessionTrackerState";
+
+let trackerClients = [
+  { name: "", items: [{ date: "", desc: "", note: "", price: 0 }] },
+];
+
+function saveTrackerState() {
+  try {
+    localStorage.setItem(TRACKER_STORAGE_KEY, JSON.stringify(trackerClients));
+  } catch (e) {
+    console.warn("Failed saving tracker cache:", e);
+  }
+}
+
+function loadTrackerState() {
+  try {
+    const raw = localStorage.getItem(TRACKER_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length) trackerClients = parsed;
+  } catch (e) {
+    console.warn("Failed loading tracker cache:", e);
+  }
+}
+
+function renderSessionTracker() {
+  const wrap = el("trackerClientBlocks");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+
+  trackerClients.forEach((client, cIdx) => {
+    const block = document.createElement("div");
+    block.className = "client-block";
+
+    const rowsHtml = client.items
+      .map(
+        (item, iIdx) => `
+        <tr>
+          <td>${iIdx + 1}</td>
+          <td><input type="date" data-c="${cIdx}" data-i="${iIdx}" data-field="date" value="${escapeAttr(item.date || "")}"></td>
+          <td><input type="text" data-c="${cIdx}" data-i="${iIdx}" data-field="desc" placeholder="Subject / session tutor" value="${escapeAttr(item.desc || "")}"></td>
+          <td><input type="text" data-c="${cIdx}" data-i="${iIdx}" data-field="note" placeholder="Note" value="${escapeAttr(item.note || "")}"></td>
+          <td class="num"><input type="number" min="0" step="1000" data-c="${cIdx}" data-i="${iIdx}" data-field="price" value="${item.price || 0}"></td>
+          <td><button type="button" class="item-remove remove-tracker-row-btn" data-c="${cIdx}" data-i="${iIdx}" aria-label="Remove row">✕</button></td>
+        </tr>`
+      )
+      .join("");
+
+    const total = client.items.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+
+    block.innerHTML = `
+      <div class="client-block-head">
+        <input type="text" class="client-name-input" data-c="${cIdx}" placeholder="Student name" value="${escapeAttr(client.name || "")}">
+        <button type="button" class="btn-ghost btn-sm remove-tracker-client-btn" data-c="${cIdx}">🗑 Remove student</button>
+      </div>
+      <table class="tracker-table">
+        <thead>
+          <tr><th>No</th><th>Date</th><th>Subject</th><th>Note</th><th class="num">Fee Tutor</th><th></th></tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+        <tfoot>
+          <tr><td colspan="4">Total</td><td class="num">${formatRupiah(total)}</td><td></td></tr>
+        </tfoot>
+      </table>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="btn-ghost btn-sm add-tracker-row-btn" data-c="${cIdx}">+ Add row</button>
+        <button type="button" class="btn-primary send-tracker-btn" data-c="${cIdx}" style="width:auto;">→ Add to Main Table</button>
+      </div>
+    `;
+    wrap.appendChild(block);
+  });
+
+  wrap.querySelectorAll(".client-name-input").forEach((input) => {
+    input.addEventListener("input", (e) => {
+      trackerClients[Number(e.target.dataset.c)].name = e.target.value;
+      saveTrackerState();
+    });
+  });
+
+  wrap.querySelectorAll("tbody input").forEach((input) => {
+    input.addEventListener("input", (e) => {
+      const c = Number(e.target.dataset.c);
+      const i = Number(e.target.dataset.i);
+      const field = e.target.dataset.field;
+      const isText = field === "date" || field === "desc" || field === "note";
+      trackerClients[c].items[i][field] = isText ? e.target.value : Number(e.target.value);
+
+      const total = trackerClients[c].items.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
+      const totalCell = wrap.children[c].querySelector("tfoot td.num");
+      if (totalCell) totalCell.textContent = formatRupiah(total);
+
+      saveTrackerState();
+    });
+  });
+
+  wrap.querySelectorAll(".add-tracker-row-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const c = Number(e.currentTarget.dataset.c);
+      trackerClients[c].items.push({ date: "", desc: "", note: "", price: 0 });
+      renderSessionTracker();
+    });
+  });
+
+  wrap.querySelectorAll(".remove-tracker-row-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const c = Number(e.currentTarget.dataset.c);
+      const i = Number(e.currentTarget.dataset.i);
+      trackerClients[c].items.splice(i, 1);
+      if (trackerClients[c].items.length === 0) {
+        trackerClients[c].items.push({ date: "", desc: "", note: "", price: 0 });
+      }
+      renderSessionTracker();
+    });
+  });
+
+  wrap.querySelectorAll(".remove-tracker-client-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const c = Number(e.currentTarget.dataset.c);
+      trackerClients.splice(c, 1);
+      if (trackerClients.length === 0) {
+        trackerClients.push({ name: "", items: [{ date: "", desc: "", note: "", price: 0 }] });
+      }
+      renderSessionTracker();
+    });
+  });
+
+  // "Add to Main Table" — overwrites the Invoice tab's Session Details
+  // with this student's rows, fills Client Name, then switches to Invoice tab.
+  wrap.querySelectorAll(".send-tracker-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const c = Number(e.currentTarget.dataset.c);
+      const client = trackerClients[c];
+
+      items = client.items.map((it) => ({
+        date: it.date || "",
+        desc: it.desc || "",
+        note: it.note || "",
+        price: Number(it.price) || 0,
+        additionalFee: 0,
+      }));
+      if (items.length === 0) items = [{ date: "", desc: "", note: "", price: 0, additionalFee: 0 }];
+
+      el("clientName").value = client.name || "";
+
+      renderItemRows();
+      renderPreview();
+
+      const invoiceTabBtn = document.querySelector('.tab-btn[data-tab="tab-invoice"]');
+      if (invoiceTabBtn) invoiceTabBtn.click();
+    });
+  });
+
+  saveTrackerState();
+}
+
+if (el("addTrackerClientBtn")) {
+  el("addTrackerClientBtn").addEventListener("click", () => {
+    trackerClients.push({ name: "", items: [{ date: "", desc: "", note: "", price: 0 }] });
+    renderSessionTracker();
+  });
+}
+
+loadTrackerState();
+
 // ============ Init ============
 renderItemRows();
 renderPreview();
 renderTitipan();
 renderAdditionalItemRows();
-
+renderSessionTracker();

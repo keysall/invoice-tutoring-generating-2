@@ -145,6 +145,7 @@ function collectState() {
   };
 }
 
+
 function saveState() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(collectState()));
@@ -332,26 +333,26 @@ function renderPreview() {
   if (!hasQris && !hasBank) {
     optionsWrap.innerHTML = `<div class="payment-empty">No payment method has been added yet.</div>`;
   } else {
-    if (hasQris) {
+      if (hasQris) {
       const block = document.createElement("div");
       block.className = "payment-block";
       block.innerHTML = `
         <img src="${qrisDataUrl}" alt="QRIS" class="qris-thumb">
         <div class="payment-text">
-          <div class="payment-title">Bank Transfer</div>
-          ${escapeHtml(bank)}<br>
-          Account holder: ${escapeHtml(bankHolder)}
+          <div class="payment-title">QRIS</div>
+          Scan to pay
         </div>
       `;
       optionsWrap.appendChild(block);
     }
+  
     if (hasBank) {
       const block = document.createElement("div");
       block.className = "payment-block";
       block.innerHTML = `
         <div class="payment-text">
           <div class="payment-title">Bank Transfer</div>
-          <span class="payment-bank-line">${escapeHtml(bank)} ${escapeHtml(bankAcc)}</span><br>
+          <span class="payment-bank-line">${escapeHtml(bankAcc)}</span><br>
           Account holder: ${escapeHtml(bankHolder)}
         </div>
       `;

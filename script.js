@@ -135,8 +135,8 @@ function collectState() {
     clientName: el("clientName").value,
     invoiceNumber: el("invoiceNumber").value,
     invoiceDate: el("invoiceDate").value,
-    bankName: el("bankName").value,
-    bankAccount: el("bankAccount").value,
+    el("bankAccount").value = state.bankAccount ?? "";
+    
     bankHolder: el("bankHolder").value,
     closingNote: el("closingNote").value,
     signatureName: el("signatureName").value,
@@ -163,7 +163,7 @@ function loadState() {
     el("clientName").value = state.clientName ?? "";
     el("invoiceNumber").value = state.invoiceNumber ?? "";
     el("invoiceDate").value = state.invoiceDate ?? new Date().toISOString().slice(0, 7);
-    el("bankName").value = state.bankName ?? "";
+    
     el("bankAccount").value = state.bankAccount ?? "";
     el("bankHolder").value = state.bankHolder ?? "";
     el("closingNote").value = state.closingNote ?? el("closingNote").value;
@@ -320,14 +320,14 @@ function renderPreview() {
   }
 
   // payment
-  const bank = el("bankName").value;
+  
   const bankAcc = el("bankAccount").value;
   const bankHolder = el("bankHolder").value;
   const optionsWrap = el("paymentOptions");
   optionsWrap.innerHTML = "";
 
   const hasQris = !!qrisDataUrl;
-  const hasBank = bank || bankAcc || bankHolder;
+  const hasBank = bankAcc || bankHolder;
 
   if (!hasQris && !hasBank) {
     optionsWrap.innerHTML = `<div class="payment-empty">No payment method has been added yet.</div>`;
@@ -338,8 +338,9 @@ function renderPreview() {
       block.innerHTML = `
         <img src="${qrisDataUrl}" alt="QRIS" class="qris-thumb">
         <div class="payment-text">
-          <div class="payment-title">QRIS</div>
-          Scan to pay
+          <div class="payment-title">Bank Transfer</div>
+          ${escapeHtml(bank)}<br>
+          Account holder: ${escapeHtml(bankHolder)}
         </div>
       `;
       optionsWrap.appendChild(block);
@@ -546,7 +547,7 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
 const TITIPAN_STORAGE_KEY = "titipanCalculatorState";
 
 let titipanClients = [
-  { name: "", items: [{ date: "", type: "", price: 0, note: "" }] },
+  { name: "", items: [{ date: "", type: "", qty: 1, price: 0, note: "" }] },
 ];
 
 function saveTitipanState() {
@@ -577,22 +578,23 @@ function renderTitipan() {
     const block = document.createElement("div");
     block.className = "client-block";
 
-    const rowsHtml = client.items
-      .map(
-        (item, iIdx) => `
-        <tr>
-          <td>${iIdx + 1}</td>
-          <td><input type="date" data-c="${cIdx}" data-i="${iIdx}" data-field="date" value="${escapeAttr(item.date || "")}"></td>
-          <td><input type="text" data-c="${cIdx}" data-i="${iIdx}" data-field="type" placeholder="e.g. Textbook" value="${escapeAttr(item.type || "")}"></td>
-          <td class="num"><input type="number" min="0" step="1000" data-c="${cIdx}" data-i="${iIdx}" data-field="price" value="${item.price || 0}"></td>
-          <td><input type="text" data-c="${cIdx}" data-i="${iIdx}" data-field="note" placeholder="Note" value="${escapeAttr(item.note || "")}"></td>
-          <td><button type="button" class="item-remove remove-titipan-row-btn" data-c="${cIdx}" data-i="${iIdx}" aria-label="Remove row">✕</button></td>
-        </tr>`
-      )
-      .join("");
+   const rowsHtml = client.items
+  .map(
+    (item, iIdx) => `
+    <tr>
+      <td>${iIdx + 1}</td>
+      <td><input type="date" data-c="${cIdx}" data-i="${iIdx}" data-field="date" value="${escapeAttr(item.date || "")}"></td>
+      <td><input type="text" data-c="${cIdx}" data-i="${iIdx}" data-field="type" placeholder="e.g. Textbook" value="${escapeAttr(item.type || "")}"></td>
+      <td class="num"><input type="number" min="0" step="1" data-c="${cIdx}" data-i="${iIdx}" data-field="qty" value="${item.qty || 1}"></td>
+      <td class="num"><input type="number" min="0" step="1000" data-c="${cIdx}" data-i="${iIdx}" data-field="price" value="${item.price || 0}"></td>
+      <td><input type="text" data-c="${cIdx}" data-i="${iIdx}" data-field="note" placeholder="cth: Braun sudah bayar 1/2 kmrin" value="${escapeAttr(item.note || "")}"></td>
+      <td><button type="button" class="item-remove remove-titipan-row-btn" data-c="${cIdx}" data-i="${iIdx}" aria-label="Remove row">✕</button></td>
+    </tr>`
+  )
+  .join("");
 
-    const total = client.items.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
-
+const total = client.items.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty) || 1), 0);
+    
     block.innerHTML = `
       <div class="client-block-head">
         <input type="text" class="client-name-input" data-c="${cIdx}" placeholder="Student name" value="${escapeAttr(client.name || "")}">
@@ -600,15 +602,18 @@ function renderTitipan() {
           <i class="ti ti-trash" aria-hidden="true"></i> Remove student
         </button>
       </div>
+  
+
       <table class="titipan-table">
         <thead>
-          <tr><th>No</th><th>Date</th><th>Type</th><th class="num">Price</th><th>Note</th><th></th></tr>
+          <tr><th>No</th><th>Date</th><th>Type</th><th class="num">Qty</th><th class="num">Price</th><th>Note (optional)</th><th></th></tr>
         </thead>
         <tbody>${rowsHtml}</tbody>
         <tfoot>
-          <tr><td colspan="3">Total</td><td class="num">${formatRupiah(total)}</td><td colspan="2"></td></tr>
+          <tr><td colspan="4">Total</td><td class="num">${formatRupiah(total)}</td><td colspan="2"></td></tr>
         </tfoot>
       </table>
+      
       <button type="button" class="btn-ghost btn-sm add-titipan-row-btn" data-c="${cIdx}">
         <i class="ti ti-plus" aria-hidden="true"></i> Add item
       </button>
@@ -635,9 +640,10 @@ function renderTitipan() {
       const i = Number(e.target.dataset.i);
       const field = e.target.dataset.field;
       const isText = field === "date" || field === "type" || field === "note";
+// (qty & price tetap number, nggak perlu diubah — baris ini sama seperti sebelumnya)
       titipanClients[c].items[i][field] = isText ? e.target.value : Number(e.target.value);
 
-      const total = titipanClients[c].items.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+      const total = titipanClients[c].items.reduce((sum, it) => sum + (Number(it.price) || 0) * (Number(it.qty) || 1), 0);
       const totalCell = wrap.children[c].querySelector("tfoot td.num");
       if (totalCell) totalCell.textContent = formatRupiah(total);
 
@@ -649,7 +655,7 @@ function renderTitipan() {
   wrap.querySelectorAll(".add-titipan-row-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const c = Number(e.currentTarget.dataset.c);
-      titipanClients[c].items.push({ date: "", type: "", price: 0, note: "" });
+      titipanClients[c].items.push({ date: "", type: "", qty: 1, price: 0, note: "" });
       renderTitipan();
     });
   });

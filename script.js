@@ -135,8 +135,8 @@ function collectState() {
     clientName: el("clientName").value,
     invoiceNumber: el("invoiceNumber").value,
     invoiceDate: el("invoiceDate").value,
-    el("bankAccount").value = state.bankAccount ?? "";
-    
+    bankName: el("bankName").value,
+    bankAccount: el("bankAccount").value,
     bankHolder: el("bankHolder").value,
     closingNote: el("closingNote").value,
     signatureName: el("signatureName").value,
@@ -165,6 +165,7 @@ function loadState() {
     el("invoiceNumber").value = state.invoiceNumber ?? "";
     el("invoiceDate").value = state.invoiceDate ?? new Date().toISOString().slice(0, 7);
     
+    el("bankName").value = state.bankName ?? "";
     el("bankAccount").value = state.bankAccount ?? "";
     el("bankHolder").value = state.bankHolder ?? "";
     el("closingNote").value = state.closingNote ?? el("closingNote").value;

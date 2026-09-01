@@ -271,12 +271,14 @@ input[type="file"] {
 }
 
 .sheet-parties {
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 500;
   line-height: 1.8;
   margin-bottom: 22px;
   padding-bottom: 18px;
   border-bottom: 1px solid var(--border);
 }
+
 .label-muted { color: var(--ink-soft); margin-right: 6px; }
 
 /* Mobile-friendly table wrapper: lets the table scroll sideways on narrow
@@ -378,14 +380,14 @@ input[type="file"] {
   border-left: 1px solid var(--border);
 }
 .qris-thumb {
-  width: 64px;
-  height: 64px;
+  width: 96px;
+  height: 96px;
   border-radius: 6px;
   border: 1px solid var(--border-strong);
   object-fit: cover;
 }
 .payment-text { font-size: 13px; line-height: 1.6; }
-.payment-text .payment-title { color: var(--ink-soft); font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 2px; }
+.payment-text .payment-title { color: #000; font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 2px; }
 .payment-bank-line { font-size: 16px; font-weight: 700; }
 
 .sheet-footer {
@@ -398,7 +400,7 @@ input[type="file"] {
   border-top: 1px solid var(--border);
 }
 .footer-note {
-  font-size: 12.5px;
+  font-size: 14px;
   line-height: 1.6;
   color: var(--ink);
   max-width: 60%;
@@ -597,18 +599,20 @@ input[type="file"] {
     padding: 10px 0;
     border-bottom: 1px solid var(--border);
   }
-  .titipan-table td { border-bottom: none; padding: 0; }
   .titipan-table td:nth-child(1) { flex: 0 0 20px; order: 1; }
   .titipan-table td:nth-child(2) { flex: 1 1 45%; order: 2; }
-  .titipan-table td:nth-child(4) { flex: 1 1 40%; order: 3; }
-  .titipan-table td:nth-child(3) { flex: 1 1 100%; order: 4; }
-  .titipan-table td:nth-child(5) { flex: 1 1 100%; order: 5; }
-  .titipan-table td:nth-child(6) { flex: 0 0 auto; order: 6; margin-left: auto; }
+  .titipan-table td:nth-child(4) { flex: 1 1 25%; order: 3; }
+  .titipan-table td:nth-child(5) { flex: 1 1 30%; order: 4; }
+  .titipan-table td:nth-child(3) { flex: 1 1 100%; order: 5; }
+  .titipan-table td:nth-child(6) { flex: 1 1 100%; order: 6; }
+  .titipan-table td:nth-child(7) { flex: 0 0 auto; order: 7; margin-left: auto; }
   .titipan-table input { width: 100%; }
   .titipan-table td:nth-child(2)::before { content: "Date"; }
   .titipan-table td:nth-child(3)::before { content: "Type"; }
-  .titipan-table td:nth-child(4)::before { content: "Price"; }
-  .titipan-table td:nth-child(5)::before { content: "Note"; }
+  .titipan-table td:nth-child(4)::before { content: "Qty"; }
+  .titipan-table td:nth-child(5)::before { content: "Price"; }
+  .titipan-table td:nth-child(6)::before { content: "Note"; }
+  
   .titipan-table td::before {
     display: block;
     font-size: 10px;

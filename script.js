@@ -1,16 +1,40 @@
 // ============ State ============
 const STORAGE_KEY = "invoiceGeneratorState";
 
-// Each item row: date (session date), desc (subject/session tutor), note,
-// price (fee tutor), additionalFee. No per-row subtotal anymore — only a
-// single grand Total Fee at the bottom of the table.
 let items = [
-  { date: "", desc: "Math: Functions", note: "Titipan", price: 100000, additionalFee: 0 },
+  { date: "", desc: "Math: Functions", note: "", price: 100000, additionalFee: 0 },
 ];
 let qrisDataUrl = null;
 let additionalMode = false;
 let additionalItems = [{ date: "", type: "", qty: 1, price: 0 }];
 
+function el(id) { return document.getElementById(id); }
+function escapeAttr(str) { return String(str).replace(/"/g, "&quot;"); }
+function escapeHtml(str) {
+  const d = document.createElement("div");
+  d.textContent = str == null ? "" : str;
+  return d.innerHTML;
+}
+
+// ============ Helpers ============
+function formatRupiah(n) {
+  n = Number(n) || 0;
+  return "Rp" + n.toLocaleString("id-ID", { maximumFractionDigits: 0 });
+}
+function formatDateEN(monthStr) {
+  if (!monthStr) return "—";
+  const d = new Date(monthStr + "-01T00:00:00");
+  if (isNaN(d)) return "—";
+  return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
+function formatSessionDate(dateStr) {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr + "T00:00:00");
+  if (isNaN(d)) return "—";
+  return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+
+// ============ Additional Mode (Titipan) — separate table, form side ============
 function renderAdditionalItemRows() {
   const list = el("additionalItemsList");
   if (!list) return;
@@ -65,6 +89,7 @@ if (el("additionalModeToggle")) {
   });
 }
 
+// ============ Main table skeleton ============
 function renderMainTable() {
   const wrap = el("mainTableWrap");
   if (!wrap) return;
@@ -101,32 +126,6 @@ function renderMainTable() {
   }
 }
 
-
-// ============ Helpers ============
-function formatRupiah(n) {
-  n = Number(n) || 0;
-  return "Rp" + n.toLocaleString("id-ID", { maximumFractionDigits: 0 });
-}
-
-// Invoice header date = billing month (input type="month" gives "YYYY-MM").
-function formatDateEN(monthStr) {
-  if (!monthStr) return "—";
-  const d = new Date(monthStr + "-01T00:00:00");
-  if (isNaN(d)) return "—";
-  return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-}
-
-// Per-session date (input type="date"). en-GB locale gives "Tuesday, 18 August 2026"
-// (day before month), matching the original design.
-function formatSessionDate(dateStr) {
-  if (!dateStr) return "—";
-  const d = new Date(dateStr + "T00:00:00");
-  if (isNaN(d)) return "—";
-  return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-}
-
-function el(id) { return document.getElementById(id); }
-
 // ============ Cache (localStorage) ============
 function collectState() {
   return {
@@ -135,16 +134,16 @@ function collectState() {
     clientName: el("clientName").value,
     invoiceNumber: el("invoiceNumber").value,
     invoiceDate: el("invoiceDate").value,
-    bankName: el("bankName").value,
     bankAccount: el("bankAccount").value,
     bankHolder: el("bankHolder").value,
     closingNote: el("closingNote").value,
     signatureName: el("signatureName").value,
     items: items,
     qrisDataUrl: qrisDataUrl,
+    additionalMode: additionalMode,
+    additionalItems: additionalItems,
   };
 }
-
 
 function saveState() {
   try {
@@ -164,15 +163,23 @@ function loadState() {
     el("clientName").value = state.clientName ?? "";
     el("invoiceNumber").value = state.invoiceNumber ?? "";
     el("invoiceDate").value = state.invoiceDate ?? new Date().toISOString().slice(0, 7);
-    
-    el("bankName").value = state.bankName ?? "";
     el("bankAccount").value = state.bankAccount ?? "";
     el("bankHolder").value = state.bankHolder ?? "";
     el("closingNote").value = state.closingNote ?? el("closingNote").value;
-    el("signatureName").value = state.signatureName ?? "";
+    el("signatureName").value = state.signatureName ?? el("fromName").value;
     if (Array.isArray(state.items) && state.items.length) items = state.items;
     qrisDataUrl = state.qrisDataUrl || null;
     if (qrisDataUrl) el("removeQrisBtn").hidden = false;
+
+    additionalMode = !!state.additionalMode;
+    if (Array.isArray(state.additionalItems) && state.additionalItems.length) {
+      additionalItems = state.additionalItems;
+    }
+    if (el("additionalModeToggle")) el("additionalModeToggle").checked = additionalMode;
+    if (el("additionalItemsList")) el("additionalItemsList").hidden = !additionalMode;
+    if (el("addAdditionalItemBtn")) el("addAdditionalItemBtn").hidden = !additionalMode;
+    if (el("additionalTableWrap")) el("additionalTableWrap").hidden = !additionalMode;
+
     return true;
   } catch (e) {
     console.warn("Failed to load cache:", e);
@@ -185,8 +192,7 @@ function clearState() {
   location.reload();
 }
 
-// ============ Line items (form side) ============
-// Row fields: date | desc (subject) | note | price (fee tutor) | additionalFee
+// ============ Session Details (main table, form side) ============
 function renderItemRows() {
   const list = el("itemsList");
   list.innerHTML = "";
@@ -194,13 +200,13 @@ function renderItemRows() {
     const row = document.createElement("div");
     row.className = "item-row";
     row.innerHTML = `
-  <input class="f-date" type="date" data-idx="${idx}" data-field="date" value="${escapeAttr(item.date || "")}">
-  <input class="f-subject" type="text" data-idx="${idx}" data-field="desc" placeholder="Subject / session tutor" value="${escapeAttr(item.desc)}">
-  <input class="f-note" type="text" data-idx="${idx}" data-field="note" placeholder="Note" value="${escapeAttr(item.note || "")}">
-  <input class="f-price" type="number" min="0" step="1000" data-idx="${idx}" data-field="price" value="${item.price}">
-  <input class="f-fee" type="number" min="0" step="1000" data-idx="${idx}" data-field="additionalFee" value="${item.additionalFee || 0}">
-  <button type="button" class="item-remove" data-idx="${idx}" aria-label="Remove row">✕</button>
-`;
+      <input class="f-date" type="date" data-idx="${idx}" data-field="date" value="${escapeAttr(item.date || "")}">
+      <input class="f-subject" type="text" data-idx="${idx}" data-field="desc" placeholder="Subject / session tutor" value="${escapeAttr(item.desc)}">
+      <input class="f-note" type="text" data-idx="${idx}" data-field="note" placeholder="Note" value="${escapeAttr(item.note || "")}">
+      <input class="f-price" type="number" min="0" step="1000" data-idx="${idx}" data-field="price" value="${item.price}">
+      <input class="f-fee" type="number" min="0" step="1000" data-idx="${idx}" data-field="additionalFee" value="${item.additionalFee || 0}">
+      <button type="button" class="item-remove" data-idx="${idx}" aria-label="Remove row">✕</button>
+    `;
     list.appendChild(row);
   });
 
@@ -221,15 +227,6 @@ function renderItemRows() {
       renderPreview();
     });
   });
-}
-
-function escapeAttr(str) {
-  return String(str).replace(/"/g, "&quot;");
-}
-function escapeHtml(str) {
-  const d = document.createElement("div");
-  d.textContent = str == null ? "" : str;
-  return d.innerHTML;
 }
 
 el("addItemBtn").addEventListener("click", () => {
@@ -257,8 +254,6 @@ el("removeQrisBtn").addEventListener("click", () => {
   renderPreview();
 });
 
-
-
 // ============ Preview render ============
 function renderPreview() {
   el("prevFromName").textContent = el("fromName").value || "—";
@@ -268,7 +263,6 @@ function renderPreview() {
     : "—";
   el("prevDate").textContent = formatDateEN(el("invoiceDate").value);
 
-  // items — table: No | Date | Subject | Note | Fee Tutor | Additional Fee
   renderMainTable();
   const body = el("prevItemsBody");
   let total = 0;
@@ -321,8 +315,7 @@ function renderPreview() {
     if (el("prevGrandTotal")) el("prevGrandTotal").textContent = formatRupiah(total + addTotal);
   }
 
-  // payment
-  
+  // Payment — single field "bankAccount" holds bank name + account number together.
   const bankAcc = el("bankAccount").value;
   const bankHolder = el("bankHolder").value;
   const optionsWrap = el("paymentOptions");
@@ -334,7 +327,7 @@ function renderPreview() {
   if (!hasQris && !hasBank) {
     optionsWrap.innerHTML = `<div class="payment-empty">No payment method has been added yet.</div>`;
   } else {
-      if (hasQris) {
+    if (hasQris) {
       const block = document.createElement("div");
       block.className = "payment-block";
       block.innerHTML = `
@@ -346,7 +339,6 @@ function renderPreview() {
       `;
       optionsWrap.appendChild(block);
     }
-  
     if (hasBank) {
       const block = document.createElement("div");
       block.className = "payment-block";
@@ -361,7 +353,6 @@ function renderPreview() {
     }
   }
 
-  // footer
   el("prevClosingNote").textContent = el("closingNote").value || "—";
   el("prevContact").textContent = el("fromContact").value || "";
   el("prevSignature").textContent = el("signatureName").value || "—";
@@ -372,167 +363,19 @@ function renderPreview() {
 // ============ Wire up live inputs ============
 [
   "fromName", "fromContact", "clientName", "invoiceNumber", "invoiceDate",
-  "bankName", "bankAccount", "bankHolder", "closingNote", "signatureName",
+  "bankAccount", "bankHolder", "closingNote", "signatureName",
 ].forEach((id) => {
   el(id).addEventListener("input", renderPreview);
 });
 
-// ============ Load cache (if any), fallback to current month ============
+// ============ Load cache, fallback to current month ============
 const hadSavedState = loadState();
 if (!hadSavedState) {
-  el("invoiceDate").value = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+  el("invoiceDate").value = new Date().toISOString().slice(0, 7);
 }
 
 el("clearCacheBtn").addEventListener("click", () => {
   if (confirm("Delete all data saved from this browser?")) clearState();
-});
-
-// ============ PDF export ============
-// Always exports on real A4 paper size. If the invoice content is taller
-// than one A4 page (e.g. ~10+ session rows), it automatically continues
-// onto page 2, 3, etc. — text stays full-size, it never shrinks to fit.
-//
-// To avoid any issue with mobile scroll position / narrow viewport, we
-// build an OFF-SCREEN CLONE of the invoice at a fixed desktop-like width
-// and capture that instead of the visible (possibly scrolled/narrow) sheet.
-function getPageBreakpoints(sheetEl, scale) {
-  const sheetTop = sheetEl.getBoundingClientRect().top;
-  const points = new Set([0]);
-
-  Array.from(sheetEl.children).forEach((child) => {
-    const rect = child.getBoundingClientRect();
-    points.add(Math.round((rect.top - sheetTop) * scale));
-    points.add(Math.round((rect.bottom - sheetTop) * scale));
-  });
-
-  const tbody = sheetEl.querySelector("#prevItemsBody");
-  if (tbody) {
-    Array.from(tbody.children).forEach((tr) => {
-      const rect = tr.getBoundingClientRect();
-      points.add(Math.round((rect.top - sheetTop) * scale));
-      points.add(Math.round((rect.bottom - sheetTop) * scale));
-    });
-  }
-
-  points.add(Math.round(sheetEl.scrollHeight * scale));
-  return Array.from(points).sort((a, b) => a - b);
-}
-
-el("downloadBtn").addEventListener("click", async () => {
-  const btn = el("downloadBtn");
-  const originalLabel = btn.innerHTML;
-  btn.disabled = true;
-  btn.innerHTML = "Preparing PDF...";
-
-  // --- Build an off-screen clone at a fixed width ---
-  const original = el("invoiceSheet");
-  const clone = original.cloneNode(true);
-  clone.id = "invoiceSheetExportClone";
-  clone.style.position = "fixed";
-  clone.style.top = "0";
-  clone.style.left = "-10000px";
-  clone.style.width = "800px";
-  clone.style.margin = "0";
-  clone.style.zIndex = "-1";
-
-  // Inside the clone, remove the mobile scroll restriction entirely —
-  // it doesn't need to scroll, it just needs to show everything.
-  const cloneScrollWrap = clone.querySelector(".table-scroll");
-  const cloneTable = clone.querySelector(".sheet-table");
-  if (cloneScrollWrap) cloneScrollWrap.style.overflow = "visible";
-if (cloneTable) cloneTable.style.minWidth = "0";
-
-// Force "desktop" appearance on the clone no matter how narrow the phone's
-// actual screen is — media queries check the real browser viewport, not
-// this clone's own width, so without this the mobile @media rules still
-// sneak in and wreck the layout (stacked title/date, left-aligned footer).
-const cloneHead = clone.querySelector(".sheet-head");
-const cloneTitle = clone.querySelector(".sheet-title");
-const cloneMeta = clone.querySelector(".sheet-meta");
-const cloneFooter = clone.querySelector(".sheet-footer");
-const cloneFooterNote = clone.querySelector(".footer-note");
-const cloneFooterSign = clone.querySelector(".footer-sign");
-
-clone.style.padding = "16px";
-if (cloneHead) { cloneHead.style.flexDirection = "row"; cloneHead.style.alignItems = "flex-start"; cloneHead.style.gap = "0"; }
-if (cloneTitle) cloneTitle.style.fontSize = "44px";
-if (cloneMeta) cloneMeta.style.textAlign = "right";
-if (cloneFooter) { cloneFooter.style.flexDirection = "row"; cloneFooter.style.alignItems = "flex-end"; cloneFooter.style.gap = "24px"; }
-if (cloneFooterNote) cloneFooterNote.style.maxWidth = "60%";
-if (cloneFooterSign) cloneFooterSign.style.textAlign = "right";
-
-document.body.appendChild(clone);
-  // Force layout to settle before measuring/capturing.
-  void clone.offsetHeight;
-
-  try {
-    const scale = 1.5;
-    const canvas = await html2canvas(clone, {
-      scale,
-      backgroundColor: "#ffffff",
-    });
-
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ unit: "mm", format: "a4" });
-
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 15;
-    const contentWidth = pageWidth - margin * 2;
-    const contentHeight = pageHeight - margin * 2;
-
-    const pxToMm = contentWidth / canvas.width;
-    const scaledHeightMm = canvas.height * pxToMm;
-
-    // ngecelin ukuran ya JANGAN DIHAPUS
-    if (scaledHeightMm <= contentHeight) {
-      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, contentWidth, scaledHeightMm);
-    } else {
-    
-      const pageHeightPx = contentHeight / pxToMm;
-      const breakpoints = getPageBreakpoints(clone, scale);
-      let renderedPx = 0;
-      let pageIndex = 0;
-
-      while (renderedPx < canvas.height) {
-        const hardLimit = Math.min(renderedPx + pageHeightPx, canvas.height);
-        let cut = hardLimit;
-        for (let i = breakpoints.length - 1; i >= 0; i--) {
-          if (breakpoints[i] <= hardLimit && breakpoints[i] > renderedPx) {
-            cut = breakpoints[i];
-            break;
-          }
-        }
-        const sliceHeightPx = cut - renderedPx;
-
-        const pageCanvas = document.createElement("canvas");
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = sliceHeightPx;
-        pageCanvas.getContext("2d").drawImage(
-          canvas,
-          0, renderedPx, canvas.width, sliceHeightPx,
-          0, 0, canvas.width, sliceHeightPx
-        );
-
-        // BUAT NGECELIN UKURAN PDF JGN DIHAPUS!!!
-        if (pageIndex > 0) pdf.addPage();
-        pdf.addImage(pageCanvas.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, contentWidth, sliceHeightPx * pxToMm);
-        
-        renderedPx = cut;
-        pageIndex++;
-      }
-    }
-
-    const fileName = (el("invoiceNumber").value || "invoice").replace(/[^\w-]+/g, "_");
-    pdf.save(`${fileName}.pdf`);
-  } catch (err) {
-    console.error(err);
-    alert("Failed to make PDF. Please try again.");
-  } finally {
-    document.body.removeChild(clone);
-    btn.disabled = false;
-    btn.innerHTML = originalLabel;
-  }
 });
 
 // ============ TABS ============
@@ -545,9 +388,8 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
   });
 });
 
-// ============ TAB 2: kalkulatorrrr titipan ============
+// ============ TAB 2: Kalkulator Titipan ============
 const TITIPAN_STORAGE_KEY = "titipanCalculatorState";
-
 let titipanClients = [
   { name: "", items: [{ date: "", type: "", qty: 1, price: 0, note: "" }] },
 ];
@@ -559,7 +401,6 @@ function saveTitipanState() {
     console.warn("Failed saving titipan cache:", e);
   }
 }
-
 function loadTitipanState() {
   try {
     const raw = localStorage.getItem(TITIPAN_STORAGE_KEY);
@@ -580,32 +421,28 @@ function renderTitipan() {
     const block = document.createElement("div");
     block.className = "client-block";
 
-   const rowsHtml = client.items
-  .map(
-    (item, iIdx) => `
-    <tr>
-      <td>${iIdx + 1}</td>
-      <td><input type="date" data-c="${cIdx}" data-i="${iIdx}" data-field="date" value="${escapeAttr(item.date || "")}"></td>
-      <td><input type="text" data-c="${cIdx}" data-i="${iIdx}" data-field="type" placeholder="e.g. Textbook" value="${escapeAttr(item.type || "")}"></td>
-      <td class="num"><input type="number" min="0" step="1" data-c="${cIdx}" data-i="${iIdx}" data-field="qty" value="${item.qty || 1}"></td>
-      <td class="num"><input type="number" min="0" step="1000" data-c="${cIdx}" data-i="${iIdx}" data-field="price" value="${item.price || 0}"></td>
-      <td><input type="text" data-c="${cIdx}" data-i="${iIdx}" data-field="note" placeholder="cth: Braun sudah bayar 1/2 kmrin" value="${escapeAttr(item.note || "")}"></td>
-      <td><button type="button" class="item-remove remove-titipan-row-btn" data-c="${cIdx}" data-i="${iIdx}" aria-label="Remove row">✕</button></td>
-    </tr>`
-  )
-  .join("");
+    const rowsHtml = client.items
+      .map(
+        (item, iIdx) => `
+        <tr>
+          <td>${iIdx + 1}</td>
+          <td><input type="date" data-c="${cIdx}" data-i="${iIdx}" data-field="date" value="${escapeAttr(item.date || "")}"></td>
+          <td><input type="text" data-c="${cIdx}" data-i="${iIdx}" data-field="type" placeholder="e.g. Textbook" value="${escapeAttr(item.type || "")}"></td>
+          <td class="num"><input type="number" min="0" step="1" data-c="${cIdx}" data-i="${iIdx}" data-field="qty" value="${item.qty || 1}"></td>
+          <td class="num"><input type="number" min="0" step="1000" data-c="${cIdx}" data-i="${iIdx}" data-field="price" value="${item.price || 0}"></td>
+          <td><input type="text" data-c="${cIdx}" data-i="${iIdx}" data-field="note" placeholder="cth: Braun sudah bayar 1/2 kmrin" value="${escapeAttr(item.note || "")}"></td>
+          <td><button type="button" class="item-remove remove-titipan-row-btn" data-c="${cIdx}" data-i="${iIdx}" aria-label="Remove row">✕</button></td>
+        </tr>`
+      )
+      .join("");
 
-const total = client.items.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty) || 1), 0);
-    
+    const total = client.items.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty) || 1), 0);
+
     block.innerHTML = `
       <div class="client-block-head">
         <input type="text" class="client-name-input" data-c="${cIdx}" placeholder="Student name" value="${escapeAttr(client.name || "")}">
-        <button type="button" class="btn-ghost btn-sm remove-client-btn" data-c="${cIdx}">
-          <i class="ti ti-trash" aria-hidden="true"></i> Remove student
-        </button>
+        <button type="button" class="btn-ghost btn-sm remove-client-btn" data-c="${cIdx}">Remove student</button>
       </div>
-  
-
       <table class="titipan-table">
         <thead>
           <tr><th>No</th><th>Date</th><th>Type</th><th class="num">Qty</th><th class="num">Price</th><th>Note (optional)</th><th></th></tr>
@@ -615,15 +452,11 @@ const total = client.items.reduce((sum, item) => sum + (Number(item.price) || 0)
           <tr><td colspan="4">Total</td><td class="num">${formatRupiah(total)}</td><td colspan="2"></td></tr>
         </tfoot>
       </table>
-      
-      <button type="button" class="btn-ghost btn-sm add-titipan-row-btn" data-c="${cIdx}">
-        <i class="ti ti-plus" aria-hidden="true"></i> Add item
-      </button>
+      <button type="button" class="btn-ghost btn-sm add-titipan-row-btn" data-c="${cIdx}">+ Add item</button>
     `;
     wrap.appendChild(block);
   });
 
-  // client name inputs
   wrap.querySelectorAll(".client-name-input").forEach((input) => {
     input.addEventListener("input", (e) => {
       titipanClients[Number(e.target.dataset.c)].name = e.target.value;
@@ -631,18 +464,12 @@ const total = client.items.reduce((sum, item) => sum + (Number(item.price) || 0)
     });
   });
 
-  // item field inputs — update data only, DON'T call renderTitipan() here.
-  // Re-rendering on every keystroke rebuilds every <input> in the table,
-  // which kicks focus out of the box you're typing in. We only touch the
-  // Total number directly (via DOM), since that's the only visible thing
-  // that needs to change while typing.
   wrap.querySelectorAll("tbody input").forEach((input) => {
     input.addEventListener("input", (e) => {
       const c = Number(e.target.dataset.c);
       const i = Number(e.target.dataset.i);
       const field = e.target.dataset.field;
       const isText = field === "date" || field === "type" || field === "note";
-// (qty & price tetap number, nggak perlu diubah — baris ini sama seperti sebelumnya)
       titipanClients[c].items[i][field] = isText ? e.target.value : Number(e.target.value);
 
       const total = titipanClients[c].items.reduce((sum, it) => sum + (Number(it.price) || 0) * (Number(it.qty) || 1), 0);
@@ -653,7 +480,6 @@ const total = client.items.reduce((sum, item) => sum + (Number(item.price) || 0)
     });
   });
 
-  // add row per client
   wrap.querySelectorAll(".add-titipan-row-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const c = Number(e.currentTarget.dataset.c);
@@ -662,26 +488,24 @@ const total = client.items.reduce((sum, item) => sum + (Number(item.price) || 0)
     });
   });
 
-  // remove row
   wrap.querySelectorAll(".remove-titipan-row-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const c = Number(e.currentTarget.dataset.c);
       const i = Number(e.currentTarget.dataset.i);
       titipanClients[c].items.splice(i, 1);
       if (titipanClients[c].items.length === 0) {
-        titipanClients[c].items.push({ date: "", type: "", price: 0, note: "" });
+        titipanClients[c].items.push({ date: "", type: "", qty: 1, price: 0, note: "" });
       }
       renderTitipan();
     });
   });
 
-  // remove whole student block
   wrap.querySelectorAll(".remove-client-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const c = Number(e.currentTarget.dataset.c);
       titipanClients.splice(c, 1);
       if (titipanClients.length === 0) {
-        titipanClients.push({ name: "", items: [{ date: "", type: "", price: 0, note: "" }] });
+        titipanClients.push({ name: "", items: [{ date: "", type: "", qty: 1, price: 0, note: "" }] });
       }
       renderTitipan();
     });
@@ -692,17 +516,14 @@ const total = client.items.reduce((sum, item) => sum + (Number(item.price) || 0)
 
 if (el("addClientBtn")) {
   el("addClientBtn").addEventListener("click", () => {
-    titipanClients.push({ name: "", items: [{ date: "", type: "", price: 0, note: "" }] });
+    titipanClients.push({ name: "", items: [{ date: "", type: "", qty: 1, price: 0, note: "" }] });
     renderTitipan();
   });
 }
-
 loadTitipanState();
 
-// ============ TAB 3: Session Tracker — logs sessions per student, then
-// sends one student's sessions into the main Invoice table (overwriting it). ============
+// ============ TAB 3: Session Tracker ============
 const TRACKER_STORAGE_KEY = "sessionTrackerState";
-
 let trackerClients = [
   { name: "", items: [{ date: "", desc: "", note: "", price: 0 }] },
 ];
@@ -714,7 +535,6 @@ function saveTrackerState() {
     console.warn("Failed saving tracker cache:", e);
   }
 }
-
 function loadTrackerState() {
   try {
     const raw = localStorage.getItem(TRACKER_STORAGE_KEY);
@@ -827,8 +647,6 @@ function renderSessionTracker() {
     });
   });
 
-  // "Add to Main Table" — overwrites the Invoice tab's Session Details
-  // with this student's rows, fills Client Name, then switches to Invoice tab.
   wrap.querySelectorAll(".send-tracker-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const c = Number(e.currentTarget.dataset.c);
@@ -862,13 +680,237 @@ if (el("addTrackerClientBtn")) {
     renderSessionTracker();
   });
 }
-
 loadTrackerState();
+
+// ============ PDF export (native text, NOT a screenshot) ============
+// Uses jsPDF + jsPDF-AutoTable to draw real text/tables directly into the
+// PDF — text is selectable/searchable/copyable. Color theme: lavender.
+const PDF_LAVENDER = [124, 111, 224];
+const PDF_LAVENDER_LIGHT = [237, 235, 252];
+const PDF_INK = [46, 42, 71];
+const PDF_INK_SOFT = [120, 113, 150];
+
+function pdfCheckPageBreak(doc, y, neededHeight, margin, pageHeight) {
+  if (y + neededHeight > pageHeight - margin) {
+    doc.addPage();
+    return margin;
+  }
+  return y;
+}
+
+el("downloadBtn").addEventListener("click", () => {
+  const btn = el("downloadBtn");
+  const originalLabel = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = "Preparing PDF...";
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    const contentWidth = pageWidth - margin * 2;
+    let y = margin;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(26);
+    doc.setTextColor(...PDF_LAVENDER);
+    doc.text("INVOICE", margin, y + 8);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(...PDF_INK_SOFT);
+    doc.text("Tutoring session recap", margin, y + 14);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(...PDF_INK);
+    doc.text(formatDateEN(el("invoiceDate").value), pageWidth - margin, y + 6, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...PDF_INK_SOFT);
+    const invNoText = el("invoiceNumber").value ? "Invoice No: " + el("invoiceNumber").value : "";
+    if (invNoText) doc.text(invNoText, pageWidth - margin, y + 11, { align: "right" });
+
+    y += 22;
+    doc.setDrawColor(...PDF_LAVENDER_LIGHT);
+    doc.setLineWidth(0.4);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 7;
+
+    doc.setFontSize(10);
+    doc.setTextColor(...PDF_INK_SOFT);
+    doc.text("Invoice For", margin, y);
+    doc.setTextColor(...PDF_INK);
+    doc.text(el("clientName").value || "—", margin + 22, y);
+    y += 5.5;
+    doc.setTextColor(...PDF_INK_SOFT);
+    doc.text("From", margin, y);
+    doc.setTextColor(...PDF_INK);
+    doc.text(el("fromName").value || "—", margin + 22, y);
+    y += 9;
+
+    const mainHead = additionalMode
+      ? [["No", "Date", "Subject / Session Tutor", "Note", "Fee Tutor"]]
+      : [["No", "Date", "Subject / Session Tutor", "Note", "Fee Tutor", "Additional Fee"]];
+
+    let mainTotal = 0;
+    const mainBody = items.map((item, i) => {
+      mainTotal += Number(item.price) || 0;
+      if (!additionalMode) mainTotal += Number(item.additionalFee) || 0;
+      const row = [
+        String(i + 1),
+        formatSessionDate(item.date),
+        item.desc || "—",
+        item.note || "—",
+        formatRupiah(item.price),
+      ];
+      if (!additionalMode) row.push(formatRupiah(item.additionalFee || 0));
+      return row;
+    });
+
+    doc.autoTable({
+      startY: y,
+      head: mainHead,
+      body: mainBody,
+      foot: additionalMode
+        ? [["", "", "", "Total Fee", formatRupiah(mainTotal)]]
+        : [["", "", "", "", "Total Fee", formatRupiah(mainTotal)]],
+      theme: "grid",
+      margin: { left: margin, right: margin },
+      styles: { fontSize: 8.5, textColor: PDF_INK, lineColor: PDF_LAVENDER_LIGHT, lineWidth: 0.2, cellPadding: 2.2 },
+      headStyles: { fillColor: PDF_LAVENDER, textColor: 255, fontStyle: "bold", fontSize: 8 },
+      footStyles: { fillColor: PDF_LAVENDER_LIGHT, textColor: PDF_INK, fontStyle: "bold", fontSize: 8.5 },
+      columnStyles: additionalMode
+        ? { 0: { cellWidth: 8 }, 4: { halign: "right" } }
+        : { 0: { cellWidth: 8 }, 4: { halign: "right" }, 5: { halign: "right" } },
+    });
+    y = doc.lastAutoTable.finalY + 10;
+
+    let grandTotal = mainTotal;
+    if (additionalMode) {
+      let addTotal = 0;
+      const addBody = additionalItems.map((item, i) => {
+        const qty = Number(item.qty) || 0;
+        const price = Number(item.price) || 0;
+        addTotal += qty * price;
+        return [String(i + 1), formatSessionDate(item.date), item.type || "—", String(qty), formatRupiah(price)];
+      });
+      grandTotal = mainTotal + addTotal;
+
+      doc.autoTable({
+        startY: y,
+        head: [["No", "Date", "Jenis Titipan", "Qty", "Harga"]],
+        body: addBody,
+        foot: [["", "", "", "Total Additional", formatRupiah(addTotal)]],
+        theme: "grid",
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 8.5, textColor: PDF_INK, lineColor: PDF_LAVENDER_LIGHT, lineWidth: 0.2, cellPadding: 2.2 },
+        headStyles: { fillColor: PDF_LAVENDER, textColor: 255, fontStyle: "bold", fontSize: 8 },
+        footStyles: { fillColor: PDF_LAVENDER_LIGHT, textColor: PDF_INK, fontStyle: "bold", fontSize: 8.5 },
+        columnStyles: { 0: { cellWidth: 8 }, 3: { halign: "right" }, 4: { halign: "right" } },
+      });
+      y = doc.lastAutoTable.finalY + 6;
+
+      y = pdfCheckPageBreak(doc, y, 10, margin, pageHeight);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(...PDF_LAVENDER);
+      doc.text("GRAND TOTAL", margin, y);
+      doc.text(formatRupiah(grandTotal), pageWidth - margin, y, { align: "right" });
+      y += 10;
+    }
+
+    y = pdfCheckPageBreak(doc, y, 30, margin, pageHeight);
+    doc.setDrawColor(...PDF_LAVENDER_LIGHT);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 6;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...PDF_LAVENDER);
+    doc.text("PAYMENT METHOD", margin, y);
+    y += 6;
+
+    const bankAcc = el("bankAccount").value;
+    const bankHolder = el("bankHolder").value;
+    const hasQris = !!qrisDataUrl;
+    const hasBank = bankAcc || bankHolder;
+
+    if (!hasQris && !hasBank) {
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(9);
+      doc.setTextColor(...PDF_INK_SOFT);
+      doc.text("No payment method has been added yet.", margin, y);
+      y += 8;
+    } else {
+      let qrisBottomY = y;
+      if (hasQris) {
+        const qrisSize = 26;
+        const mime = qrisDataUrl.includes("image/png") ? "PNG" : "JPEG";
+        try { doc.addImage(qrisDataUrl, mime, margin, y, qrisSize, qrisSize); } catch (e) { console.warn("QRIS embed failed:", e); }
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(...PDF_INK_SOFT);
+        doc.text("Scan to pay", margin, y + qrisSize + 4);
+        qrisBottomY = y + qrisSize + 8;
+      }
+
+      if (hasBank) {
+        const bankX = hasQris ? margin + 36 : margin;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(...PDF_INK);
+        doc.text(bankAcc || "—", bankX, y + 4);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(...PDF_INK_SOFT);
+        doc.text("Account holder: " + (bankHolder || "—"), bankX, y + 9);
+      }
+
+      y = Math.max(qrisBottomY, y + 12) + 4;
+    }
+
+    y = pdfCheckPageBreak(doc, y, 20, margin, pageHeight);
+    doc.setDrawColor(...PDF_LAVENDER_LIGHT);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 7;
+
+    const noteLines = doc.splitTextToSize(el("closingNote").value || "—", contentWidth * 0.6);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...PDF_INK);
+    doc.text(noteLines, margin, y);
+    const contact = el("fromContact").value;
+    if (contact) {
+      doc.setFontSize(8.5);
+      doc.setTextColor(...PDF_INK_SOFT);
+      doc.text(contact, margin, y + noteLines.length * 4.5 + 3);
+    }
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...PDF_INK_SOFT);
+    doc.text("Best regards,", pageWidth - margin, y, { align: "right" });
+    doc.setFont("helvetica", "bolditalic");
+    doc.setFontSize(16);
+    doc.setTextColor(...PDF_LAVENDER);
+    doc.text(el("signatureName").value || "—", pageWidth - margin, y + 8, { align: "right" });
+
+    const fileName = (el("invoiceNumber").value || "invoice").replace(/[^\w-]+/g, "_");
+    doc.save(`${fileName}.pdf`);
+  } catch (err) {
+    console.error(err);
+    alert("Failed to make PDF. Please try again.");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalLabel;
+  }
+});
 
 // ============ Init ============
 renderItemRows();
 renderAdditionalItemRows();
 renderPreview();
 renderTitipan();
-
 renderSessionTracker();

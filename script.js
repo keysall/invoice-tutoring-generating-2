@@ -781,10 +781,10 @@ el("downloadBtn").addEventListener("click", () => {
       margin: { left: margin, right: margin },
       styles: { fontSize: 8.5, textColor: PDF_INK, lineColor: PDF_LAVENDER_LIGHT, lineWidth: 0.2, cellPadding: 2.2 },
       headStyles: { fillColor: PDF_LAVENDER, textColor: 255, fontStyle: "bold", fontSize: 8 },
-      footStyles: { fillColor: PDF_LAVENDER_LIGHT, textColor: PDF_INK, fontStyle: "bold", fontSize: 8.5 },
+      footStyles: { fillColor: PDF_LAVENDER_LIGHT, textColor: PDF_INK, fontStyle: "bold", fontSize: 11 },
       columnStyles: additionalMode
-        ? { 0: { cellWidth: 8 }, 4: { halign: "right" } }
-        : { 0: { cellWidth: 8 }, 4: { halign: "right" }, 5: { halign: "right" } },
+        ? { 0: { cellWidth: 8 }, 2: { cellWidth: 42 }, 4: { cellWidth: 34, halign: "right" } }
+        : { 0: { cellWidth: 8 }, 2: { cellWidth: 40 }, 4: { cellWidth: 28, halign: "right" }, 5: { halign: "right" } },
     });
     y = doc.lastAutoTable.finalY + 10;
 
@@ -844,9 +844,10 @@ el("downloadBtn").addEventListener("click", () => {
       doc.text("No payment method has been added yet.", margin, y);
       y += 8;
     } else {
+      
       let qrisBottomY = y;
       if (hasQris) {
-        const qrisSize = 26;
+        const qrisSize = 34;
         const mime = qrisDataUrl.includes("image/png") ? "PNG" : "JPEG";
         try { doc.addImage(qrisDataUrl, mime, margin, y, qrisSize, qrisSize); } catch (e) { console.warn("QRIS embed failed:", e); }
         doc.setFont("helvetica", "normal");
@@ -857,18 +858,18 @@ el("downloadBtn").addEventListener("click", () => {
       }
 
       if (hasBank) {
-        const bankX = hasQris ? margin + 36 : margin;
+        const bankX = hasQris ? margin + 40 : margin;
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(9);
+        doc.setFontSize(12);
         doc.setTextColor(...PDF_INK);
-        doc.text(bankAcc || "—", bankX, y + 4);
+        doc.text(bankAcc || "—", bankX, y + 6);
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(8.5);
+        doc.setFontSize(9.5);
         doc.setTextColor(...PDF_INK_SOFT);
-        doc.text("Account holder: " + (bankHolder || "—"), bankX, y + 9);
+        doc.text("Account holder: " + (bankHolder || "—"), bankX, y + 12);
       }
 
-      y = Math.max(qrisBottomY, y + 12) + 4;
+      y = Math.max(qrisBottomY, y + 16) + 4;
     }
 
     y = pdfCheckPageBreak(doc, y, 20, margin, pageHeight);

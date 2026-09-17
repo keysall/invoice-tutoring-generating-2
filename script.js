@@ -412,6 +412,15 @@ function loadTitipanState() {
   }
 }
 
+function renderTitipanSummary() {
+  const body = el("titipanSummaryBody");
+  if (!body) return;
+  body.innerHTML = titipanClients.map((client) => {
+    const total = client.items.reduce((sum, it) => sum + (Number(it.price) || 0) * (Number(it.qty) || 1), 0);
+    return `<tr><td>${escapeHtml(client.name) || "—"}</td><td class="num">${formatRupiah(total)}</td></tr>`;
+  }).join("");
+}
+
 function renderTitipan() {
   const wrap = el("clientBlocks");
   if (!wrap) return;
@@ -460,6 +469,7 @@ function renderTitipan() {
   wrap.querySelectorAll(".client-name-input").forEach((input) => {
     input.addEventListener("input", (e) => {
       titipanClients[Number(e.target.dataset.c)].name = e.target.value;
+      renderTitipanSummary();
       saveTitipanState();
     });
   });
@@ -476,6 +486,7 @@ function renderTitipan() {
       const totalCell = wrap.children[c].querySelector("tfoot td.num");
       if (totalCell) totalCell.textContent = formatRupiah(total);
 
+      renderTitipanSummary();
       saveTitipanState();
     });
   });
@@ -510,7 +521,8 @@ function renderTitipan() {
       renderTitipan();
     });
   });
-
+  
+  renderTitipanSummary();
   saveTitipanState();
 }
 
@@ -521,6 +533,13 @@ if (el("addClientBtn")) {
   });
 }
 loadTitipanState();
+
+if (el("titipanSummaryToggle")) {
+  el("titipanSummaryToggle").addEventListener("click", () => {
+    const wrap = el("titipanSummaryWrap");
+    if (wrap) wrap.hidden = !wrap.hidden;
+  });
+}
 
 // ============ TAB 3: Session Tracker ============
 const TRACKER_STORAGE_KEY = "sessionTrackerState";
@@ -915,3 +934,4 @@ renderAdditionalItemRows();
 renderPreview();
 renderTitipan();
 renderSessionTracker();
+

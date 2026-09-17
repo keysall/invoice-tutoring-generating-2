@@ -301,3 +301,23 @@ input[type="file"] { font-size: 12px; width: 100%; }
   .titipan-table tfoot tr, .tracker-table tfoot tr { flex-wrap: nowrap; justify-content: space-between; border-bottom: none; }
   .titipan-table tfoot td::before, .tracker-table tfoot td::before { content: none !important; }
 }
+
+.summary-toggle-btn {
+  background: none; border: none; padding: 0; margin: 4px 0 20px;
+  color: var(--lavender); text-decoration: underline; font-size: 14px; font-weight: 600; cursor: pointer;
+  display: inline-block;
+}
+.summary-toggle-btn:hover { opacity: 0.8; }
+
+.titipan-summary-wrap { margin-bottom: 20px; }
+.titipan-summary-table {
+  width: 100%; max-width: 420px; border-collapse: collapse; font-size: 13px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+}
+.titipan-summary-table th {
+  text-align: left; background: var(--lavender); color: #fff; font-weight: 600; font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.02em; padding: 8px 12px;
+}
+.titipan-summary-table th.num, .titipan-summary-table td.num { text-align: right; }
+.titipan-summary-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.titipan-summary-table tr:last-child td { border-bottom: none; }

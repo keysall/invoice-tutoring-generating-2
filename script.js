@@ -704,6 +704,7 @@ function renderSessionTracker() {
     });
   });
 
+  renderTrackerSummary();
   saveTrackerState();
 }
 

@@ -229,6 +229,17 @@
       <button type="button" class="btn-primary" id="addTrackerClientBtn" style="width:auto;">+ Add Student</button>
     </div>
     <div id="trackerClientBlocks" class="client-blocks"></div>
+    <button type="button" class="summary-toggle-btn" id="trackerSummaryToggle">Summary</button>
+    <div id="trackerSummaryWrap" class="titipan-summary-wrap" hidden>
+      <table class="titipan-summary-table">
+        <thead><tr><th>Name</th><th class="num">Total</th></tr></thead>
+        <tbody id="trackerSummaryBody"></tbody>
+      </table>
+      <div class="grand-total-row" style="max-width:420px;">
+        <span>Grand Total</span>
+        <span id="trackerSummaryGrandTotal">Rp0</span>
+      </div>
+    </div>
   </div>
 </div>
 

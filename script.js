@@ -565,6 +565,18 @@ function loadTrackerState() {
   }
 }
 
+function renderTrackerSummary() {
+  const body = el("trackerSummaryBody");
+  if (!body) return;
+  let grandTotal = 0;
+  body.innerHTML = trackerClients.map((client) => {
+    const total = client.items.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
+    grandTotal += total;
+    return `<tr><td>${escapeHtml(client.name) || "—"}</td><td class="num">${formatRupiah(total)}</td></tr>`;
+  }).join("");
+  if (el("trackerSummaryGrandTotal")) el("trackerSummaryGrandTotal").textContent = formatRupiah(grandTotal);
+}
+
 function renderSessionTracker() {
   const wrap = el("trackerClientBlocks");
   if (!wrap) return;
@@ -615,6 +627,7 @@ function renderSessionTracker() {
   wrap.querySelectorAll(".client-name-input").forEach((input) => {
     input.addEventListener("input", (e) => {
       trackerClients[Number(e.target.dataset.c)].name = e.target.value;
+      renderTrackerSummary();
       saveTrackerState();
     });
   });
@@ -630,6 +643,7 @@ function renderSessionTracker() {
       const total = trackerClients[c].items.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
       const totalCell = wrap.children[c].querySelector("tfoot td.num");
       if (totalCell) totalCell.textContent = formatRupiah(total);
+      renderTrackerSummary();
 
       saveTrackerState();
     });
@@ -700,6 +714,14 @@ if (el("addTrackerClientBtn")) {
   });
 }
 loadTrackerState();
+
+
+if (el("trackerSummaryToggle")) {
+  el("trackerSummaryToggle").addEventListener("click", () => {
+    const wrap = el("trackerSummaryWrap");
+    if (wrap) wrap.hidden = !wrap.hidden;
+  });
+}
 
 // ============ PDF export (native text, NOT a screenshot) ============
 // Uses jsPDF + jsPDF-AutoTable to draw real text/tables directly into the

@@ -731,7 +731,6 @@ let pinjamRows = [{ judul: "", nama: "", tanggal: "" }];
 function savePinjamState() {
   try {
     localStorage.setItem(PINJAM_STORAGE_KEY, JSON.stringify(pinjamRows));
-    scheduleCloudSave();
   } catch (e) {
     console.warn("Failed saving pinjam cache:", e);
   }

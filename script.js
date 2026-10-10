@@ -724,6 +724,70 @@ if (el("trackerSummaryToggle")) {
   });
 }
 
+// ============ TAB 4: Peminjaman Buku ============
+const PINJAM_STORAGE_KEY = "peminjamanBukuState";
+let pinjamRows = [{ judul: "", nama: "", tanggal: "" }];
+
+function savePinjamState() {
+  try {
+    localStorage.setItem(PINJAM_STORAGE_KEY, JSON.stringify(pinjamRows));
+    scheduleCloudSave();
+  } catch (e) {
+    console.warn("Failed saving pinjam cache:", e);
+  }
+}
+function loadPinjamState() {
+  try {
+    const raw = localStorage.getItem(PINJAM_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length) pinjamRows = parsed;
+  } catch (e) {
+    console.warn("Failed loading pinjam cache:", e);
+  }
+}
+
+function renderPinjamTable() {
+  const body = el("pinjamTableBody");
+  if (!body) return;
+  body.innerHTML = pinjamRows.map((row, idx) => `
+    <tr>
+      <td>${idx + 1}</td>
+      <td><input type="text" data-i="${idx}" data-field="judul" placeholder="Judul buku" value="${escapeAttr(row.judul || "")}"></td>
+      <td><input type="text" data-i="${idx}" data-field="nama" placeholder="Nama peminjam" value="${escapeAttr(row.nama || "")}"></td>
+      <td><input type="date" data-i="${idx}" data-field="tanggal" value="${escapeAttr(row.tanggal || "")}"></td>
+      <td><button type="button" class="item-remove remove-pinjam-row-btn" data-i="${idx}" aria-label="Remove row">✕</button></td>
+    </tr>
+  `).join("");
+
+  body.querySelectorAll("input").forEach((input) => {
+    input.addEventListener("input", (e) => {
+      const i = Number(e.target.dataset.i);
+      const field = e.target.dataset.field;
+      pinjamRows[i][field] = e.target.value;
+      savePinjamState();
+    });
+  });
+  body.querySelectorAll(".remove-pinjam-row-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const i = Number(e.currentTarget.dataset.i);
+      pinjamRows.splice(i, 1);
+      if (pinjamRows.length === 0) pinjamRows.push({ judul: "", nama: "", tanggal: "" });
+      renderPinjamTable();
+    });
+  });
+
+  savePinjamState();
+}
+
+if (el("addPinjamRowBtn")) {
+  el("addPinjamRowBtn").addEventListener("click", () => {
+    pinjamRows.push({ judul: "", nama: "", tanggal: "" });
+    renderPinjamTable();
+  });
+}
+loadPinjamState();
+
 // ============ PDF export (native text, NOT a screenshot) ============
 // Uses jsPDF + jsPDF-AutoTable to draw real text/tables directly into the
 // PDF — text is selectable/searchable/copyable. Color theme: lavender.
@@ -957,4 +1021,5 @@ renderAdditionalItemRows();
 renderPreview();
 renderTitipan();
 renderSessionTracker();
+renderPinjamTable();
 
